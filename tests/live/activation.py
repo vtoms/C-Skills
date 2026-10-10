@@ -31,7 +31,9 @@ def skills_invoked(prompt, timeout):
             event = json.loads(line)
         except json.JSONDecodeError:
             continue
-        message = event.get("message") or {}
+        message = event.get("message") if isinstance(event, dict) else None
+        if not isinstance(message, dict):
+            continue
         for block in message.get("content") or []:
             if isinstance(block, dict) and block.get("type") == "tool_use" and block.get("name") == "Skill":
                 found.append(block.get("input", {}).get("skill") or block.get("input", {}).get("command"))
@@ -44,10 +46,11 @@ def main():
     ap.add_argument("--runs", type=int, default=1)
     ap.add_argument("--timeout", type=int, default=240)
     ap.add_argument("--out", default="-")
+    ap.add_argument("--start", type=int, default=0, help="skip the first N cases (resume)")
     args = ap.parse_args()
     cases = json.loads(pathlib.Path(args.cases).read_text())
     results = []
-    for case in cases:
+    for case in cases[args.start:]:
         for run in range(args.runs):
             try:
                 invoked = skills_invoked(case["prompt"], args.timeout)
