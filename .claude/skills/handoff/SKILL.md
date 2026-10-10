@@ -17,17 +17,17 @@ Write a document that lets a fresh agent continue without reading this conversat
 4. **Dead ends** - what was tried and why it failed, so nobody retries it.
 5. **Next steps** - ordered; the first concrete enough to start immediately.
 6. **Open questions** for the user.
-7. **Suggested skills** - only skills that exist here; omit the section if none apply.
-8. **Resume prompt** - 3–5 lines to paste into a new session: repo, branch, this file's path, and the first next step.
+7. **Suggested skills** - by `/name`, only ones in `.claude/skills/` or built-ins; omit the section if none apply.
+8. **Resume prompt** - 3–5 lines (longer if the file isn't pushed - see Saving) to paste into a new session: repo, branch, this file's path, and the first next step.
 
 Reference existing artifacts (specs, issues, commits, files) by path or URL; don't copy them. Redact secrets, tokens, and personal data. Keep it under a page.
 
 ## Saving it
 
 - Write to `docs/handoffs/<YYYY-MM-DD>-<topic>.md`.
-- Commit **only the handoff file** on the current branch. If that is the default branch, ask first.
+- Commit **only the handoff file** - `git commit -m "..." -- <file>` after `git add <file>`, so anything already staged stays out - on the current branch. If that is the default branch, ask first.
 - **Ask before pushing.** Never commit or push other changes without the user's OK.
-- If committing or pushing is declined or fails, say the file is temporary and will be lost with the environment, and inline the next steps in the resume prompt instead of relying on the file path.
+- If committing or pushing is declined or fails, say the file is temporary and will be lost with the environment (offer to move it to the scratchpad if one exists), and inline the next steps in the resume prompt instead of relying on the file path.
 
 ## Finish
 

@@ -1,6 +1,6 @@
 ---
 name: prove-it
-description: Verifies a finished change against the real artifact - runs the repro, test, app, or a request against the running or deployed system and reads the actual output - then reports an evidence level. Use before saying a bug is fixed, a feature works, or a config or deploy took effect, and when the user asks to verify, confirm, or check that something actually works (locally or on staging). Not for questions, planning, or text-only edits.
+description: Verifies a finished change against the real artifact - runs the repro, test, app, or a request against the running or deployed system and reads the actual output - then reports an evidence level. Use before saying a bug is fixed, a feature works, or a config or deploy took effect, and when the user asks to verify, confirm, or check that something actually works (locally or on staging). Not for finding why something fails (diagnose), planning, or text-only edits.
 ---
 
 # Prove it
@@ -14,7 +14,7 @@ A summary that sounds right is not evidence. Check the real thing, not a proxy.
 
 ## Evidence ladder
 
-Rate each claim on this list and say where it stopped:
+Push each claim as high on this list as is cheap, and say where it stopped:
 
 1. **Asserted** - I said so.
 2. **Cited** - a real `file:line` or the library's own source.
@@ -31,7 +31,7 @@ Rate each claim on this list and say where it stopped:
 - **Use the repo's own checks first** - its verify script, smoke test, lint, typecheck, and the tests for the touched package. If I've done the same manual check twice, propose scripting it.
 - **No repro and no tests?** Write a throwaway script in a scratch directory that calls the real code and would fail on the old behaviour. Run it, keep its output, delete it afterwards.
 - **When a check fails, suspect the check before the system** - confirm I'm observing the right thing. But never make a red check green by weakening, skipping, or deleting it.
-- **Stay safe.** Live checks run locally or on staging. Ask before touching production or shared data, or anything that sends, charges, migrates, deploys, or pushes.
+- **Stay safe.** Read-only checks (GET requests, status, logs) may hit any environment. Run anything that writes locally or on staging; ask before writing to production or shared data, or anything that sends, charges, migrates, deploys, or pushes.
 
 ## Report
 

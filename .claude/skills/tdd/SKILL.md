@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-first (TDD) loop in vertical slices - agree seams, list behaviours, then one failing test and the minimum code to pass it, repeated per behaviour. Use when the user asks for TDD, test-first, red-green-refactor, or tests that drive new code, or when writing new self-contained logic with a precise spec (parser, calculation, state machine). Not for adding tests to existing code, debugging failing tests, refactors, UI/glue/config changes, or prototypes.
+description: Test-first (TDD) loop, one behaviour at a time - agree seams, list behaviours, then one failing test and the minimum code to pass it. Use when the user asks for TDD, test-first, red-green-refactor, or tests that drive new code, or when writing new self-contained logic with a precise spec (parser, calculation, state machine). Not for fixing a reported bug (diagnose), adding tests to existing code, refactors, UI/glue/config changes, or prototypes.
 ---
 
 # TDD
@@ -9,7 +9,7 @@ description: Test-first (TDD) loop in vertical slices - agree seams, list behavi
 
 - **Runner** - find the command that runs one test and the one that runs the suite. If there is no test setup, propose one and confirm before installing anything.
 - **Seams** - the public boundaries to test at (function signature, endpoint, CLI output), each with one line on what it catches and misses. Confirm with the user if present; otherwise pick the narrowest set covering the risky logic and state it.
-- **Legacy code with no seam** - first pin current behaviour with a characterization test; once it is green, extracting the seam is allowed.
+- **Legacy code with no seam** (when adding new logic to it) - first pin current behaviour with a characterization test; once it is green, extracting the seam is allowed.
 - **Behaviour list** - a short ordered list of test *names*, simplest first. A to-do list, not a commitment; revise it as slices teach me things.
 
 ## Phase 2: the loop, one behaviour at a time
@@ -22,7 +22,7 @@ Refactor only on green, then re-run everything.
 
 ## Done
 
-When the list is empty: run the full suite, verify the feature through its real entry point (`prove-it`), and report what is covered and what was deferred.
+When the list is empty: run the full suite, verify the feature through its real entry point (the `prove-it` skill), and report what is covered and what was deferred.
 
 ## Tests worth keeping
 

@@ -25,7 +25,7 @@ Keep a candidate only if it is likely to recur in this project; drop typos and o
 ## 2. Pick the strongest home whose cost fits
 
 - **Code defects** → a test, type, or lint rule that makes the mistake fail CI.
-- **Costly or repeated process mistakes** → a script or hook that checks automatically.
+- **Process mistakes that recurred despite a written rule, or are costly** → a script or hook that checks automatically; otherwise a CLAUDE.md line first.
 - **Workflow gaps** → an edit to an existing skill in `.claude/skills/` (edit; don't append duplicates). A new skill only when a repeated, non-trivial workflow has no home.
 - **One-line conventions and facts** → the project CLAUDE.md.
 
@@ -33,5 +33,5 @@ Keep a candidate only if it is likely to recur in this project; drop typos and o
 
 1. Show a table: lesson → home → exact edit (diff or new lines).
 2. Apply only what the user approves. If nothing is approved, stop.
-3. Touch only the project CLAUDE.md and `.claude/skills/` unless the user asks otherwise. Keep each edit minimal, in the target file's style, and never add a rule that contradicts an existing one without resolving it.
+3. Edit only files in this project named in the rows the user approved - never `~/.claude` or other user-level files unless the user asks. Keep each edit minimal, in the target file's style, and never add a rule that contradicts an existing one without resolving it.
 4. For each test, hook, or lint rule added, show it catching the original mistake before calling it done.

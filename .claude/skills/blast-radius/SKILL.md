@@ -8,7 +8,7 @@ argument-hint: "[diff, branch, PR, or described change]"
 
 ## Size it first
 
-- **Private, local change** (a rename inside one module, an internal helper): grep the direct callers, write one paragraph, stop.
+- **Private, local change** (a rename inside one module, an internal helper): grep the direct callers and string or dynamic references to the name, write one paragraph, stop.
 - **Anything crossing a boundary** (public API, serialized data, persisted state, config, dependencies): do the full pass below.
 
 ## Steps
@@ -23,7 +23,7 @@ argument-hint: "[diff, branch, PR, or described change]"
    - Dependencies: the library's actual source at the pinned version.
    - Consumers outside this repo: public APIs, published packages, scripts, docs.
 5. **Rate each risk honestly** - realistic likelihood and real cost. Never invent a caller or an API. A search that finds nothing is valid evidence **for this repo only**; anything outside it stays UNVERIFIED.
-6. **Prove the load-bearing fact.** Write a small script or test that exercises the real code in a scratch directory - never against production data, networks, or publish steps - run it, and paste the output. State the strength of the proof: observed running > test passed > read the code > inferred.
+6. **Prove the load-bearing fact.** Write a small script or test that exercises the real code in a scratch directory - only for trusted code (not an external fork), never against production data, networks, or publish steps - run it, and paste the output. State the proof's level: 1 asserted, 2 cited `file:line`, 3 reasoned step by step, 4 executed, 5 observed live (the same ladder as `prove-it`).
 
 ## Report
 

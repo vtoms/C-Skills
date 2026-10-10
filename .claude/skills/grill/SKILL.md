@@ -1,6 +1,6 @@
 ---
 name: grill
-description: Interviews the user about a plan, feature, or design in short rounds of high-impact questions, each with a recommended answer, until every open decision is settled, then records the decisions in a file. Use when the user says "grill me", asks what they are missing, asks to be pushed back on or challenged, wants gaps or risks in a plan found, or wants to settle decisions before building. Not for reviewing code or PRs, debugging, one-line fixes, or questions with an obvious answer.
+description: Interviews the user about a plan, feature, or design in short rounds of high-impact questions, each with a recommended answer, until every open decision is settled, then records the decisions in a file. Use when the user says "grill me", asks what they are missing, asks to be challenged, wants gaps or risks in a plan found, or wants to settle decisions before building. Not for reviewing code, impact analysis of a concrete change (blast-radius), debugging, or obvious questions.
 argument-hint: "[plan, file, or topic to grill]"
 ---
 
@@ -12,11 +12,11 @@ Reach shared understanding before work starts. The value is in the few decisions
 
 Estimate how many open decisions change the outcome and say so in one line ("~6 real decisions; 2–3 short rounds.").
 
-- **≤2 decisions, and the skill was triggered automatically:** ask the one question that matters, or state the assumptions and wait for a go-ahead. **If the user explicitly asked to be grilled, grill anyway.**
+- **≤2 decisions, and the skill was triggered automatically:** ask the one question that matters, or state the assumptions and wait for a go-ahead. **If the user explicitly asked to be grilled, challenged, or for gaps or risks, grill anyway (and do Holes first).**
 - **Otherwise:** rounds of **at most 4 questions**, highest impact first.
 - **Mode:** default to rounds. If the user says "one at a time", switch for the rest of the session.
 
-## Holes first (when asked to stress-test or find gaps)
+## Holes first (when asked to challenge the plan, find gaps or risks, or say what is missing)
 
 Before the first round, list the top 3–5 risks or unstated assumptions in the plan, each with severity and a possible mitigation. Any that need the user's choice become questions in the rounds.
 
@@ -48,4 +48,4 @@ Stop when no remaining question would change the outcome, or the user says "you 
 
 ## Record
 
-After the user confirms, write the decisions to the repo's existing ADR/decisions location if there is one, else `docs/decisions/<topic>.md` - one line each: decision, choice, reason. Never overwrite an existing file. If the session is long, suggest continuing in a fresh session that starts from that file.
+After the user confirms, write the decisions to the repo's existing ADR/decisions location if there is one, else `docs/decisions/<topic>.md` (or where the user prefers) - one line each: decision, choice, reason. Never overwrite an existing file; append a dated section to it instead. Later work cites this file instead of re-asking. Say the file is uncommitted and offer to commit it (ask before pushing); if the work spans several PRs, suggest `/spec <path>` next. If the session is long, suggest continuing in a fresh session that starts from that file.

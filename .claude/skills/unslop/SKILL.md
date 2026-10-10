@@ -30,6 +30,6 @@ Edit the text so it reads like a careful person wrote it.
 1. Read the whole text first; keep its audience and tone.
 2. Edit. Prefer deleting over rewording. For a file, skip generated files, licences, and past CHANGELOG entries; apply the edits and show a diff.
 3. Do one pass comparing against the original; restore anything protected or lost.
-4. End with one line: the number of changes and the two most common patterns fixed, then the list of cut claims, if any.
+4. Reply with the revised text (for a file, the diff), then one line: the number of changes and the two most common patterns fixed, then the list of cut claims, if any. No other commentary.
 
 If the text is already clean, say so and change nothing.
