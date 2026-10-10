@@ -41,6 +41,8 @@ def skills_invoked(prompt, timeout):
         for block in message.get("content") or []:
             if isinstance(block, dict) and block.get("type") == "tool_use" and block.get("name") == "Skill":
                 found.append(block.get("input", {}).get("skill") or block.get("input", {}).get("command"))
+    if proc.returncode != 0 and not found:
+        raise RuntimeError(f"claude exited {proc.returncode}")
     return found
 
 
@@ -62,10 +64,13 @@ def main():
             invoked = ["<timeout>"]
         except Exception as exc:  # one failed session must not abort the whole run
             invoked = [f"<error: {type(exc).__name__}>"]
+        # A timed-out or crashed session proves nothing either way: report it, never score it.
+        failed = any(isinstance(s, str) and s.startswith("<") for s in invoked)
         # "none" means none of this repo's skills should load (built-ins are fine).
         ours = [s for s in invoked if s in OURS]
-        hit = case["expected"] in invoked if case["expected"] != "none" else not ours
-        print(f"{case['id']} run{run}: expected={case['expected']} invoked={invoked} {'OK' if hit else 'MISS'}",
+        hit = None if failed else (case["expected"] in invoked if case["expected"] != "none" else not ours)
+        verdict = "FAILED-RUN" if failed else ("OK" if hit else "MISS")
+        print(f"{case['id']} run{run}: expected={case['expected']} invoked={invoked} {verdict}",
               file=sys.stderr, flush=True)
         return {"id": case["id"], "run": run, "expected": case["expected"], "invoked": invoked, "correct": hit}
 
@@ -77,8 +82,9 @@ def main():
         print(text)
     else:
         pathlib.Path(args.out).write_text(text, encoding="utf-8")
-    ok = sum(r["correct"] for r in results)
-    print(f"{ok}/{len(results)} correct", file=sys.stderr)
+    scored = [r for r in results if r["correct"] is not None]
+    ok = sum(r["correct"] for r in scored)
+    print(f"{ok}/{len(scored)} correct ({len(results) - len(scored)} failed runs not scored)", file=sys.stderr)
 
 
 if __name__ == "__main__":

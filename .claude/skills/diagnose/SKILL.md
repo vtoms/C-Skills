@@ -9,7 +9,7 @@ when_to_use: 'Bug reports phrased as questions count, e.g. "how come the export 
 ## First: which tier
 
 - **Can't reach the system from here** (no code, no environment, read-only): answer in one message - 3-5 ranked hypotheses, each with the one observation or command that would confirm or kill it. Mark them unverified, offer to build the red command given access, a log, or a capture, and stop there.
-- **Can reach it:** the gate below applies. If the user only asked why, share the ranked hypotheses first, then build the red command unless told to stop.
+- **Can reach it:** the gate below applies. One exception: if the user only asked why, share the ranked hypotheses first, marked unverified, then build the red command unless told to stop.
 
 ## Gate: a red command before any theory
 

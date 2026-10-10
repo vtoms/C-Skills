@@ -54,7 +54,7 @@ Word each question so "yes" accepts the recommendation. Mark **⚠** questions t
 
 ## Stop
 
-Stop when no remaining question would change the outcome, or the user says "you decide" or "enough". List the defaults being taken. **Do not implement until the user confirms the summary** - running out of questions is not permission to start.
+Stop when no remaining question would change the outcome, or the user says "you decide" or "enough". List the defaults being taken; ⚠ questions still need an explicit answer, even after "you decide". **Do not implement until the user confirms the summary** - running out of questions is not permission to start.
 
 ## Record
 
