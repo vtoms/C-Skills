@@ -24,6 +24,7 @@ Most changes should reach 4. "It compiles" and "the types check" are level 2 at 
 - **Check directly.** Read the actual value, query the real process, open the real file. Not mtimes, cached output, or a subagent's self-report.
 - **Re-run the original failure.** For a fix, run the exact repro that failed before and show it passing now.
 - **Run the repo's own checks.** Lint, typecheck, and the tests for the touched package, the way a contributor would.
+- **Use the repo's own verifier first.** If the project has a verify script, smoke test, or a skill that drives the app, run that. If I've done the same manual check twice in a session, propose turning it into a script so the next agent can run it.
 - **Script the check when I can.** A deterministic script someone can re-run beats a one-time look. Keep it out of the commit unless the work needs an audit trail.
 - **When verification fails, suspect the check first.** Make sure I'm observing the right thing before concluding the system is broken.
 - **Size it to the task.** A one-line docs fix needs a glance at the rendered result, not a test harness.

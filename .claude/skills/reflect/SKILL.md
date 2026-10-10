@@ -8,6 +8,8 @@ disable-model-invocation: true
 
 A lesson that lives only in chat is forgotten next session. Encode it in structure.
 
+Worth running after a difficult, failed, or heavily corrected session. After a smooth one, say there's nothing durable to learn and stop. Reflection on every session is its own overhead.
+
 ## 1. Collect candidates
 
 Review the session for:

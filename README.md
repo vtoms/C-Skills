@@ -2,7 +2,7 @@
 
 Agent Skills for Claude Code. They're distilled from the two most-discussed skill packs of 2026, Matt Pocock's [AI Hero skills](https://www.aihero.dev/skills) and Lauren Tan's [pstack](https://github.com/backnotprop/pstack), and rewritten to fix what their users complained about. See [NOTICE.md](NOTICE.md) for attribution.
 
-**Status: v0.1.** Perplexity round 1 (AI Hero) is folded in ([what changed and why](docs/research-findings.md#changes-made-in-response-v01)); the pstack round is pending. Independent adversarial checks follow ([plan](docs/adversarial-verification-plan.md)).
+**Status: v0.2.** Both Perplexity rounds are folded in ([AI Hero changes](docs/research-findings.md#changes-made-in-response-v01), [pstack changes](docs/research-findings.md#changes-made-in-response-v02)). Independent adversarial checks follow ([plan](docs/adversarial-verification-plan.md)).
 
 ## Skills
 
@@ -19,9 +19,10 @@ They live in `.claude/skills/`, so Claude Code loads them automatically in this 
 | `spec` | manual | Turns settled decisions into a short spec plus 2–6 independently shippable vertical slices | Avoids process inflation: no tracker setup, a hard cap on slices, nothing created externally unless you ask |
 | `handoff` | manual | Writes a handoff doc so a fresh agent can continue cold | Write it early, commit it, include a paste-able resume prompt |
 | `plain` | manual | Re-explains the last message in plain language | Combines `wait-what` and `/bro`. For a permanent preference, use a Claude Code output style instead |
+| `unslop` | manual | Removes AI-writing tells from prose while keeping meaning, tone, and code untouched | pstack's best-received standalone skill, rewritten shorter; makes no changes if the text is already clean |
 | `reflect` | manual | Turns session lessons into the strongest guard (type, test, lint, then a skill or CLAUDE.md edit) | Proposes changes before applying them; leaves out pstack's transcript-mining across workspaces |
 
-**Left out on purpose:** autopilot, shipping and auto-merge playbooks, `sudo`/`curl | sh` installers, `@latest` dependencies, and multi-provider model routing. Those were the security and cost complaints raised about pstack.
+**Left out on purpose:** autopilot, shipping and auto-merge playbooks, `sudo`/`curl | sh` installers, `@latest` dependencies, and multi-provider model routing. Those were the security and cost complaints raised about pstack. Skills may *recommend* a merge or push; enforce the real limits with branch protection and scoped tokens, not with instructions in a SKILL.md.
 
 ## Tests
 
