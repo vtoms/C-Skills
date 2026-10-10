@@ -14,23 +14,23 @@ description: Test-first (TDD) loop, one behaviour at a time - agree seams, list 
 
 ## Phase 2: the loop, one behaviour at a time
 
-1. **Red** - write one test and run it. It must fail **on an assertion**, not on an import or syntax error. If the unit doesn't exist yet, add a stub with the final signature that returns a wrong value. If the test passes immediately, check it can fail at all; keep it only if it pins real behaviour.
-2. **Green** - the least code that passes. No speculative parameters.
-3. Tick it off; next behaviour.
-
-Refactor only on green, then re-run everything.
+1. **Red** - first name the bug this test would catch; if I can't, it is not a test. Write it from the spec, not from code I've already written - another correct implementation must pass it too. Run it. It must fail **on an assertion**, not on an import or syntax error. If the unit doesn't exist yet, add a stub with the final signature that returns a wrong value. If the test passes immediately, check it can fail at all; keep it only if it pins real behaviour.
+2. **Green** - the least code that passes. No speculative parameters. Never edit, skip or delete a test to get green; if the test itself is wrong, say so and fix it as its own step.
+3. **Refactor** - on green, tidy the code and test just touched, then re-run everything. A change in behaviour is a new test, not a refactor.
+4. Tick it off; next behaviour.
 
 ## Done
 
-When the list is empty: run the full suite, verify the feature through its real entry point (the `prove-it` skill), and report what is covered and what was deferred.
+When the list is empty: re-read the request and add a behaviour for any requirement no test covers. Then run the full suite, verify the feature through its real entry point (the `prove-it` skill), and report what is covered and what was deferred, naming any failing test even if I didn't cause it.
 
 ## Tests worth keeping
 
 - Behaviour through the public interface; survives an internal rewrite.
-- Expected values from an independent source - a worked example, the spec, a known-good literal. Never recompute them the way the code does (`expect(add(a,b)).toBe(a+b)` cannot fail).
-- Mocks only at system boundaries (network, clock, filesystem, randomness).
+- Expected values from an independent source - a worked example, the spec, a known-good literal. Never recompute them the way the code does (`expect(add(a,b)).toBe(a+b)` cannot fail). Reject a test that would still pass if the code returned `undefined`/`None` (only `toBeDefined`, `toBeTruthy`, `not.toThrow`).
+- Mocks only at system boundaries (network, clock, filesystem, randomness). Assert what the mock received, not just that it was called.
+- Time and async - inject the clock; wait for a condition with a timeout, never a fixed sleep.
 - Named as a specification: "rejects checkout when cart is empty".
 
 ## Anti-patterns
 
-Writing all test code before any implementation · testing private methods or reading the DB instead of the interface · unread snapshots · weakening an assertion to get green.
+Writing all test code before any implementation · testing private methods or reading the DB instead of the interface · unread snapshots · weakening, skipping or deleting a test to get green.
