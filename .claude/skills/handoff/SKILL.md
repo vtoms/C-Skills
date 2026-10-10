@@ -20,7 +20,7 @@ Write a document that lets a fresh agent continue without reading this conversat
 7. **Suggested skills** - by `/name`, only ones in `.claude/skills/` or built-ins; omit the section if none apply.
 8. **Resume prompt** - 3–5 lines (longer if the file isn't pushed - see Saving) to paste into a new session: repo, branch, this file's path, the first next step, and an instruction to check the State against `git log`/`git status` (and the status command) and report any mismatch before acting.
 
-Reference existing artifacts (specs, issues, commits, files, and this session's transcript file if the next session runs on this machine) by path or URL; don't copy them. Redact secrets, tokens, and personal data. Keep it under a page.
+Reference existing artifacts (specs, issues, commits, files) by path or URL; don't copy them. If the next session runs on this machine, put this session's transcript path in the printed resume prompt only, never in the committed file. Redact secrets, tokens, and personal data. Keep it under a page.
 
 ## Saving it
 

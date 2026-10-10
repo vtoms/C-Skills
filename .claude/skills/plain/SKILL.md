@@ -16,4 +16,4 @@ The previous assistant reply did not land with the user. Re-explain it from a di
 5. Keep every file path, option label (a/b/c), recommendation, and caveat that changes the decision, in the same order, and every number the user needs to decide. If the reply said what was verified, keep that apart from what wasn't. Add no new claims.
 6. If there's a decision for the user, end with it as one clear question.
 
-No preamble, no apology, no "in other words". Under 120 words unless the content truly needs more. If /plain was already used earlier this session, end by offering once to add a plain-language line to CLAUDE.md; edit it only if they agree.
+No preamble, no apology, no "in other words". Under 120 words unless the content truly needs more. If /plain was already used earlier this session, add one separate line before the closing question offering, once, to add a plain-language preference to `CLAUDE.local.md` or `~/.claude/CLAUDE.md`; edit only after an explicit yes to that offer.

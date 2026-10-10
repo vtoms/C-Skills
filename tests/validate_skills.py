@@ -38,9 +38,10 @@ RESERVED = {"code-review", "simplify", "init", "review", "security-review", "loo
 TAG_RE = re.compile(r"<[A-Za-z/][^>]*>")
 # Claude Code substitutes $0..$19 in a skill body when it is invoked with arguments
 # (claude-code#79859, #91957, #94065), silently corrupting text such as "$1 per run".
-ARG_TOKEN_RE = re.compile(r"(?<![\\$\w])\$(1?[0-9])\b")
+ARG_TOKEN_RE = re.compile(r"(?<!\\)\$(\d+)")
 # YAML 1.1 reads yes/no/on/off as booleans; only literal true/false is portable.
-RAW_BOOL_RE = re.compile(r"^(disable-model-invocation|user-invocable):\s*(\S+)\s*$", re.M)
+# Captures empty values and ignores trailing comments.
+RAW_BOOL_RE = re.compile(r"^(disable-model-invocation|user-invocable):[ \t]*([^\s#]*)[ \t]*(?:#[^\n]*)?\r?$", re.M)
 PERSONAL = pathlib.Path.home() / ".claude" / "skills"
 
 

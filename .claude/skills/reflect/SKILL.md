@@ -32,7 +32,7 @@ For each candidate, quote the session moment that shows it; drop any you can't p
 - **Workflow gaps** → an edit to an existing skill in `.claude/skills/` (edit; don't append duplicates). A new skill only when a repeated, non-trivial workflow has no home.
 - **One-line conventions and facts** → CLAUDE.md only if it applies across the whole repo; a narrower one goes in a path-scoped rule file (e.g. `.claude/rules/<topic>.md` with `paths:` frontmatter, so it loads only for matching files) or the relevant skill. If CLAUDE.md is near 200 lines, pair the addition with a removal.
 
-A written rule that was still broken needs a check (test, lint, or hook), not another line. For stale or contradicting text, fix or delete it in the file that is wrong; don't add a line on top.
+A written rule that was still broken needs a check (test, lint, or hook), not another line. For stale or contradicting text, fix or delete it in the file that is wrong; don't add a line on top. If that file is user-level, propose the exact fix for the user to apply.
 
 ## 3. Propose, then apply
 
