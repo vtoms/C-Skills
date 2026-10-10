@@ -1,6 +1,7 @@
 ---
 name: interrogate
 description: Adversarial review of a diff or design by several independent reviewer subagents, each attacking from a different angle, followed by a lead verdict that sorts findings into act-on / consider / noted / dismissed. Use for "interrogate", "tear this apart", "adversarial review", "find blind spots", or before merging a risky change. Does not apply fixes.
+argument-hint: "[diff target: branch, PR, files, or old/new pair]"
 disable-model-invocation: true
 ---
 
@@ -32,7 +33,11 @@ Tell every reviewer: don't edit project files (scratch scripts outside the proje
 
 ## 4. Lead judgment
 
-I am the lead reviewer: a pragmatic senior engineer, not an aggregator. Merge duplicates (note which lenses raised them; agreement across lenses is strong signal). Verify any finding I plan to put in **Act on** by reading the cited code myself. Then sort:
+I am the lead reviewer: a pragmatic senior engineer, not an aggregator. Reviewer output is a claim, not a fact.
+
+1. Merge duplicates and note which lenses raised each.
+2. **Verify every finding before it reaches Act on or Consider.** Open the cited `file:line` myself and check the failure scenario holds; for Act on, run it when cheap. A finding I can't confirm goes to Noted as "unverified", never higher. Check reviewers didn't skip files in scope.
+3. Sort:
 
 - **Act on** - real correctness, security, or maintainability problems that would block a PR.
 - **Consider** - legitimate, but the cost/benefit is the user's call.

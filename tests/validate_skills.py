@@ -7,25 +7,46 @@ import pathlib
 import re
 import sys
 
+import yaml  # PyYAML
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent / ".claude" / "skills"
 NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 WHEN_RE = re.compile(r"\buse (when|for|at|before|after)\b", re.IGNORECASE)
 # Community audits of pstack flagged these as unsafe in shared skills.
 UNSAFE_RE = re.compile(r"sudo |curl [^\n|]*\| *(ba)?sh|push --force|push -f\b|--force-with-lease|gh pr merge|@latest", re.IGNORECASE)
-RESERVED = {"code-review", "simplify", "init", "review", "security-review", "loop", "run"}
+# Claude Code silently ignores unknown keys, so a typo (disable_model_invocation)
+# quietly changes behaviour. Source: code.claude.com/docs/en/skills.md
+KNOWN_FIELDS = {"name", "description", "when_to_use", "argument-hint", "disable-model-invocation",
+                "user-invocable", "allowed-tools", "model", "effort", "context", "agent",
+                "hooks", "paths", "shell"}
+BOOL_FIELDS = {"disable-model-invocation", "user-invocable"}
+BOOL_VALUES = {"true", "false"}
+# Descriptions are injected into the system prompt and should be third person.
+PRONOUN_RE = re.compile(r"\b(I|me|my|you|your)\b")
+QUOTED_RE = re.compile(r'"[^"]*"|\'[^\']*\'')
+LISTING_CAP = 1536      # Claude Code truncates description + when_to_use here
+PORTABLE_CAP = 1024     # Agent Skills spec / API limit
+TARGET_CAP = 500        # keep listing-budget friendly
+IMPERATIVES = {"interview", "work", "turn", "compress", "re-pitch", "verify", "find", "run", "use",
+               "write", "review", "build", "create", "make", "before", "after"}
+RESERVED = {"code-review", "simplify", "init", "review", "security-review", "loop", "run", "prototype"}
 
 
 def parse_frontmatter(text):
+    """Parse with a real YAML parser: an unquoted ': ' inside a value is
+    invalid YAML and can make the harness reject the whole skill."""
     if not text.startswith("---\n"):
         return None, "missing opening ---"
     end = text.find("\n---", 4)
     if end == -1:
         return None, "missing closing ---"
-    fields = {}
-    for line in text[4:end].splitlines():
-        if ":" in line and not line.startswith(" "):
-            key, value = line.split(":", 1)
-            fields[key.strip()] = value.strip().strip('"')
+    try:
+        data = yaml.safe_load(text[4:end])
+    except yaml.YAMLError as e:
+        return None, "invalid YAML frontmatter: " + str(e).splitlines()[0]
+    if not isinstance(data, dict):
+        return None, "frontmatter is not a mapping"
+    fields = {k: ("" if v is None else str(v).lower() if isinstance(v, bool) else str(v)) for k, v in data.items()}
     return fields, text[end + 4:]
 
 
@@ -48,8 +69,25 @@ def main():
             errors.append(f"{d.name}: name must be kebab-case, <=64 chars")
         if name in RESERVED:
             errors.append(f"{d.name}: name clashes with a built-in command")
-        if not 40 <= len(desc) <= 1024:
-            errors.append(f"{d.name}: description length {len(desc)} not in 40..1024")
+        for key in fm:
+            if key not in KNOWN_FIELDS:
+                errors.append(f"{d.name}: unknown frontmatter field '{key}' (silently ignored)")
+        for key in BOOL_FIELDS & fm.keys():
+            if fm[key].lower() not in BOOL_VALUES:
+                errors.append(f"{d.name}: {key} must be true/false, got '{fm[key]}'")
+        if "claude" in name or "anthropic" in name:
+            errors.append(f"{d.name}: name may not contain 'claude' or 'anthropic'")
+        if not 40 <= len(desc) <= PORTABLE_CAP:
+            errors.append(f"{d.name}: description length {len(desc)} not in 40..{PORTABLE_CAP}")
+        elif len(desc) > TARGET_CAP:
+            errors.append(f"{d.name}: description {len(desc)} chars; keep <= {TARGET_CAP} for the listing budget")
+        if len(desc) + len(fm.get("when_to_use", "")) > LISTING_CAP:
+            errors.append(f"{d.name}: description + when_to_use over {LISTING_CAP}, will be truncated")
+        unquoted = QUOTED_RE.sub("", desc)
+        if PRONOUN_RE.search(unquoted):
+            errors.append(f"{d.name}: description should be third person (found '{PRONOUN_RE.search(unquoted).group(0)}')")
+        if desc.split()[0].lower() in IMPERATIVES:
+            errors.append(f"{d.name}: description starts with an imperative ('{desc.split()[0]}'); use third person, e.g. 'Interviews...'")
         if not WHEN_RE.search(desc):
             errors.append(f"{d.name}: description should say when to use it")
         if UNSAFE_RE.search(body):

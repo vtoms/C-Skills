@@ -1,32 +1,32 @@
 ---
 name: tdd
-description: Test-first development in vertical slices - agree the seams, then one failing test, the minimum code to pass, repeat. Use when the user asks for TDD, red-green-refactor, test-first, or when building logic with clear, specifiable behaviour.
+description: Test-first development in vertical slices - agree the seams, list the behaviours, then one failing test and the minimum code to pass, one behaviour at a time. Use when the user asks for TDD, red-green-refactor, or test-first, or when building logic with clear, specifiable behaviour such as parsers, calculations, or state machines.
 ---
 
 # TDD
 
-## Pick the seams first
+Use it where behaviour can be specified up front. For glue code, UI wiring, or exploratory work, build it and verify with `prove-it` instead - mandatory TDD everywhere is ceremony.
 
-A seam is the public boundary where behaviour is observed: a function's signature, an HTTP endpoint, a CLI's stdout. Before the first test, list the seams I intend to test, each with one line on what it catches and what it misses. If the user is present, confirm them; otherwise choose the narrowest set that covers the risky logic and state it.
+## Phase 1: plan (no test code yet)
 
-## The loop
+- **Seams** - the public boundaries I'll test at (function signature, endpoint, CLI output), each with one line on what it catches and misses. Confirm with the user if present; otherwise pick the narrowest set covering the risky logic and state it.
+- **Behaviour list** - a short ordered list of test *names* only, simplest first. It is a to-do list, not a commitment; revise it as slices teach me things.
 
-1. **Red.** Write one test for one behaviour. Run it and **see it fail for the right reason** (an assertion, not an import error).
-2. **Green.** Write the least code that passes. No speculative parameters or features.
-3. **Repeat** with the next behaviour. Each test is a tracer bullet informed by what the last one taught me.
+## Phase 2: the loop, one behaviour at a time
 
-Refactor only once the slice is green, and re-run the full test set afterwards.
+1. **Red** - write one test. Run it and see it fail **for the right reason** (an assertion, not an import or syntax error).
+2. **Green** - the least code that passes. No speculative parameters.
+3. Tick it off; next behaviour.
 
-## What makes a test worth keeping
+Refactor only on green, then re-run everything.
 
-- **Tests behaviour through the public interface.** It survives a rewrite of internals.
-- **Expected values come from an independent source** - a worked example, the spec, a known-good literal. Never recompute the expected value the way the code does (`expect(add(a,b)).toBe(a+b)` can't fail).
-- **Mocks only at system boundaries** (network, clock, filesystem, randomness), never internal collaborators.
-- **Named as a specification**: "rejects checkout when cart is empty", not "test2".
+## Tests worth keeping
+
+- Behaviour through the public interface; survives an internal rewrite.
+- Expected values from an independent source - a worked example, the spec, a known-good literal. Never recompute them the way the code does (`expect(add(a,b)).toBe(a+b)` cannot fail).
+- Mocks only at system boundaries (network, clock, filesystem, randomness).
+- Named as a specification: "rejects checkout when cart is empty".
 
 ## Anti-patterns
 
-- Writing all tests up front, then all code (horizontal slicing). The tests describe imagined behaviour.
-- Testing private methods, or verifying by reading the database instead of the interface.
-- Snapshot tests nobody reads.
-- Weakening an assertion to get green.
+Writing all test code before any implementation · testing private methods or reading the DB instead of the interface · unread snapshots · weakening an assertion to get green.

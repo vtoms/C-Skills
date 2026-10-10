@@ -1,50 +1,34 @@
 ---
 name: diagnose
-description: Disciplined loop for hard bugs, flaky failures, and performance regressions - build a red-capable repro first, then hypothesise, instrument, fix the root cause, and lock it with a regression test. Use when something is broken, throwing, failing, flaky, or slow and the cause is not already obvious.
+description: Repro-first loop for hard bugs, flaky failures, and performance regressions - get one command that goes red on the exact symptom before theorising, then fix the root cause and prove it with a regression test that fails on the old code. Use when something is broken, throwing, failing, flaky, or slow and the cause is not already obvious.
 ---
 
 # Diagnose
 
-The repro is the skill. With a fast signal that goes red on *this* bug, the cause is found mechanically. Without one, reading code produces theories, not fixes.
+If the cause is obvious from the error, just fix it and use `prove-it`. This skill is for when it isn't.
 
-## 1. Build a feedback loop (do not skip)
+## Gate: a red command before any theory
 
-Get **one command** that reproduces the user's exact symptom. In rough order of preference:
+Produce **one command** that reproduces the user's exact symptom, run it, and show the (redacted) output. It must be:
 
-1. A failing test at the seam that reaches the bug.
-2. A curl/HTTP script against a running server.
-3. A CLI run on a fixture input, diffed against a known-good output.
-4. A headless browser script (Playwright/Chromium is installed here).
-5. Replay of a captured payload or log through the code path.
-6. A throwaway harness that calls the one function with real inputs.
-7. A fuzz loop for "sometimes wrong" bugs; `git bisect run` for regressions between known states.
+- **red on this bug** - asserts the reported symptom, not "doesn't crash";
+- **deterministic** - or, for flaky bugs, a measured repro rate I raise (loop it, add stress) until it is debuggable;
+- **fast and unattended.**
 
-The loop is done when it is **red on this bug**, **deterministic** (or a pinned high repro rate for flaky bugs), **fast**, and runnable without a human. Show the command and its (redacted) output.
+Cheapest first: failing test at the seam → script against a running server → CLI + fixture diff → headless browser (Chromium is installed) → replayed captured payload → `git bisect run` between known-good and bad states.
 
-If I catch myself building a theory before this command exists, stop and go back. If no loop is possible, say so, list what I tried, and ask for access, a captured artifact, or permission to instrument.
+If I'm reading code to build a theory before this command exists, stop. If no loop is possible, say what I tried and ask for an environment, a captured artifact, or permission to instrument.
 
-## 2. Minimise
+## Then
 
-Cut inputs, config, and steps one at a time, re-running after each cut. Keep only what is load-bearing. Confirm the failure matches what the *user* reported, not a nearby bug.
+1. **Minimise** - cut inputs and steps one at a time until every remaining piece is needed to stay red.
+2. **Hypothesise** - 3–5 ranked, each with a prediction ("if X, then changing Y turns it green"). Share them if the user is around; don't wait.
+3. **Instrument** - one probe per prediction; tag temporary logs `[DBG-<4 hex>]`. Perf: baseline measurement first, then bisect.
+4. **Fix the root cause** - a guard that silences the symptom is not a fix. "Fails after restart" → suspect stale state first. Grep for the same pattern and fix every instance.
+5. **Regression test** at a seam that exercises the real failure. Prove it bites: run it against the unfixed code and see it fail, then pass after the fix. No honest seam → report that as a finding.
 
-## 3. Hypothesise
+## Done means
 
-Write 3–5 ranked hypotheses, each falsifiable: "If X is the cause, changing Y makes the bug disappear." Show the list to the user if they are present; they often know which to rule out. Don't wait on them if they are away.
-
-## 4. Instrument
-
-One probe per prediction, one variable at a time. Prefer a debugger or REPL; otherwise targeted logs tagged with a unique prefix like `[DBG-7f3a]` so cleanup is one grep. For perf bugs, measure a baseline first and bisect; logs mislead.
-
-## 5. Fix the root cause
-
-- Ask "why" until the answer is a design fact, not a symptom. A null-check that silences a crash is not a fix.
-- When something fails "after restart", suspect stale state (cache, lock file, config) before code.
-- Grep for the same pattern elsewhere and fix every instance.
-- Write the regression test **before** the fix, at a seam that exercises the real failure. Watch it fail, apply the fix, watch it pass, then re-run the original loop. If no honest seam exists, report that as a finding.
-
-## 6. Clean up before claiming done
-
-- Original loop is green; regression test passes.
-- `grep` for the debug prefix returns nothing.
-- Throwaway harnesses deleted or clearly parked.
-- The commit message names the hypothesis that was correct.
+- Original red command now green; regression test fails on old code, passes on new.
+- `grep -r "DBG-"` returns nothing; throwaway harnesses removed.
+- The commit message names the cause that was confirmed.

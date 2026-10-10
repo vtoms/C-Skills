@@ -49,3 +49,39 @@ Sources: four research subagents using WebFetch/WebSearch, plus local clones of 
 |---|---|---|
 | Pocock | grilling rounds with recommendations, feedback-loop debugging, vertical-slice TDD, handoff, plain re-pitch | issue-tracker pipeline (needs per-repo setup), GLOSSARY/ADR machinery, `code-review` name |
 | pstack | evidence ladder, load-bearing-fact blast radius, lead-judgment review buckets, encode-lessons-in-structure | poteto-mode router, multi-provider routing, autopilot/shipping playbooks, unsafe installers |
+
+## Perplexity round 1: AI Hero skills (full report: [research/perplexity-aihero.md](research/perplexity-aihero.md))
+
+Key evidence:
+- **Retention:** most to least retained: grill-me, grill-with-docs, to-spec/to-tickets, handoff, tdd. The rest of the pack is mostly dropped as "autocomplete noise" (#159).
+- **Placebo test of `diagnosing-bugs`** (Reddit r/ClaudeAI):
+  - In 16 headless trials it was never auto-invoked.
+  - Forced runs scored 61.8 with no skill, 61.8 with a placebo and 62.6 with the real skill. Methodology alone did not change outcomes.
+- **Superpowers vs Pocock** (The Gray Cat):
+  - Superpowers took 78 min and about $34; Pocock took 148 min and about $92.
+  - Pocock delivered more features but needed repair. Treat this as directional.
+- **The "63% token reduction"** refers to skill-description tokens only, not end-to-end cost.
+- **Complaints:**
+  - too many questions, including dependent questions asked in the same batch (#895)
+  - context and token cost
+  - review findings not verified (#582)
+  - name clashes (`code-review`, `prototype`)
+  - handoff lost when the session ends first
+  - GPT-family models skip the workflow gates
+
+## Changes made in response (v0.1)
+
+| Finding | Edit |
+|---|---|
+| Dependent questions asked in the same round (#895) | `grill`: "If any plausible answer to Q1 would change Q2, Q2 waits" |
+| Minor questions bury the important ones | `grill`: drop questions where every option gives the same code; bundle low-stakes defaults into one line |
+| Structured question UI request (#798) | `grill`: prefer `AskUserQuestion` (its 4-question limit matches our cap) |
+| Agent starts implementing once the questions run out (#240, #1068) | `grill`: "running out of questions is not permission to start" |
+| Long context, so reset (70% rule) | `grill`: persist decisions, then suggest a fresh session |
+| Placebo test: methodology prose didn't change outcomes | `diagnose`: cut generic prose; kept only the gate (a command that goes red before any theory), an "if obvious, just fix" exit, and a check that the regression test fails on the old code |
+| Review findings not verified (#582) | `interrogate`: every finding must be verified at the cited line before reaching Act on or Consider; unverified findings go to Noted |
+| Handoff lost if the session ends first | `handoff`: write it early, commit and push it, add a paste-able resume prompt |
+| TDD dilutes attention (#590); "direct proof over mandatory TDD" | `tdd`: two phases (seams and a list of behaviour names, then the loop); skip TDD for glue code and use `prove-it` |
+| to-spec/to-tickets is the 3rd most retained layer; criticism of process inflation | new `spec`: 2–6 vertical slices max, a file instead of tracker setup, no external issues unless asked |
+| `/prototype` clash (#1019) | validator now reserves `prototype` |
+| `wait-what` replaced by output styles | README: for a permanent preference use an output style; `plain` is a one-off |

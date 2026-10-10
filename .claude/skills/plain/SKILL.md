@@ -1,6 +1,6 @@
 ---
 name: plain
-description: Re-pitch my previous message in plain language when it did not land - short, concrete, no jargon. Use when the user says "wait what", "I don't follow", "say that simply", "ELI5", or "/plain".
+description: Re-explains the previous assistant message in plain language when it did not land, keeping it short, concrete, and free of jargon. Use when the user says "wait what", "I don't follow", "say that simply", "ELI5", or "/plain".
 disable-model-invocation: true
 ---
 

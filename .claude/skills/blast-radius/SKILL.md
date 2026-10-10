@@ -1,6 +1,6 @@
 ---
 name: blast-radius
-description: Work out what a change could break outside its own diff, find the single fact that makes it safe, and prove that fact by running real code. Use for "what could this break", "is this safe to merge", "blast radius of X", or before shipping a small diff to shared, public, or persisted interfaces.
+description: Works out what a change could break outside its own diff, names the single fact that makes it safe, and proves that fact by running real code. Use for "what could this break", "is this safe to merge", "blast radius of X", or before shipping a change to shared, public, or persisted interfaces.
 ---
 
 # Blast radius

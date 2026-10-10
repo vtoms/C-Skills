@@ -1,6 +1,6 @@
 ---
 name: reflect
-description: After a session, mine it for durable lessons and turn each into a concrete edit - to a skill, CLAUDE.md, a test, a lint rule, or a type - so the same mistake can't recur. Use when the user says "reflect", "retro", or "what should we learn from this".
+description: Mines a finished session for durable lessons and turns each into a concrete guard (a test, lint rule, type, skill edit, or CLAUDE.md line) so the mistake cannot recur. Use when the user says "reflect", "retro", or "what should we learn from this".
 disable-model-invocation: true
 ---
 

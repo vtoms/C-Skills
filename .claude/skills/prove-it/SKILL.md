@@ -1,6 +1,6 @@
 ---
 name: prove-it
-description: Before saying a task is done, fixed, or working, verify it against the real artifact - run it, read the actual value, inspect the real output - and report how strong the evidence is. Use at the end of any code change, bug fix, config change, or claim that something works.
+description: Verifies work against the real artifact (runs it, reads the actual value, inspects the real output) and reports an evidence level before anything is called done, fixed, or working. Use at the end of any code change, bug fix, or config change, and before claiming something works.
 ---
 
 # Prove it
