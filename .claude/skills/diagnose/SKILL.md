@@ -1,6 +1,6 @@
 ---
 name: diagnose
-description: Debugs problems whose cause is unknown - first builds a command that reproduces the exact symptom, then fixes the root cause with a regression test that fails on the old code. Use for flaky failures, regressions ("worked before", only in CI or prod), crashes or hangs whose trace doesn't point to the fix (incl. device- or environment-only), wrong output or missing/duplicated data, slowdowns or leaks, or when a first fix did not work. Not for obvious stack traces, lint/build errors, or questions.
+description: Debugs problems whose cause is unknown - first builds a command that reproduces the exact symptom, then fixes the root cause with a regression test that fails on the old code. Use for flaky failures, regressions ("worked before", only in CI or prod), crashes or hangs whose trace doesn't point to the fix (incl. device- or env-only), wrong or missing/duplicated data, slowdowns or leaks, or when a first fix did not work. Not for obvious stack traces, lint/build errors, or explaining an error.
 ---
 
 # Diagnose
