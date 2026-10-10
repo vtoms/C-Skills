@@ -1,0 +1,5 @@
+import json
+
+
+def serialize_user(user):
+    return json.dumps({"id": user["id"], "email": user["email"]})
