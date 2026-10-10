@@ -32,7 +32,11 @@ Save to `docs/specs/<topic>.md` (or the user's preferred place); never overwrite
 
 ## Slices
 
-Each slice is a **vertical tracer bullet**: thin, end-to-end, demoable, mergeable on its own - never "all the schema", then "all the API". For each:
+Each slice is a **vertical tracer bullet**: thin, end-to-end, demoable, mergeable on its own - never "all the schema", then "all the API".
+
+**Exception - wide mechanical changes** (rename a column, retype a shared symbol): one edit breaks every caller, so slice them expand → migrate → contract. Expand adds the new form beside the old; migrate moves callers in batches (per package or directory), each green on its own; contract deletes the old form once no caller remains. If external consumers or persisted data exist, run `/blast-radius` before the contract slice.
+
+For each slice:
 
 ```
 ### S<n>: <user-visible capability>
@@ -46,7 +50,8 @@ Order so S1 is the smallest slice that proves the riskiest assumption.
 
 ## After writing
 
-1. Show the slice list in chat.
-2. Say the spec file is uncommitted and offer to commit it. In an ephemeral environment, an uncommitted file is lost when the session ends.
-3. Create GitHub issues or tracker items only if the user asks - one per slice. Link to the spec only if it has been pushed (ask before pushing); otherwise inline the slice text.
-4. Don't start implementing until the user picks a slice.
+1. **Builder check.** Have a fresh subagent (or, without one, yourself) read the spec as a builder who can't ask the user anything and list only the places where it would have to guess and a wrong guess would change what gets built. Fold answers already in the conversation or code into the spec; settle minor ones yourself, marked "(my call)"; bring the rest to the user in one message. That is the only question round.
+2. Show the slice list in chat.
+3. Say the spec file is uncommitted and offer to commit it. In an ephemeral environment, an uncommitted file is lost when the session ends.
+4. Create GitHub issues or tracker items only if the user asks - one per slice. Link to the spec only if it has been pushed (ask before pushing); otherwise inline the slice text.
+5. Don't start implementing until the user picks a slice.
