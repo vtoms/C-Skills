@@ -1,0 +1,16 @@
+[
+  {"q": "grill-me skill", "subs": ["ClaudeAI", "ClaudeCode", "ChatGPTCoding"]},
+  {"q": "mattpocock skills", "subs": ["ClaudeAI", "ClaudeCode", "cursor"]},
+  {"q": "superpowers obra", "subs": ["ClaudeAI", "ClaudeCode"]},
+  {"q": "superpowers vs mattpocock", "subs": ["ClaudeAI", "ClaudeCode"]},
+  {"q": "pstack poteto", "subs": ["cursor", "ClaudeCode", "ClaudeAI"]},
+  {"q": "gstack garry tan skills", "subs": ["ClaudeAI", "ClaudeCode"]},
+  {"q": "diagnosing-bugs skill", "subs": ["ClaudeAI", "ClaudeCode"]},
+  {"q": "verification-before-completion", "subs": ["ClaudeAI", "ClaudeCode"]},
+  {"q": "TDD skill Claude Code", "subs": ["ClaudeAI", "ClaudeCode", "ExperiencedDevs"]},
+  {"q": "handoff skill context", "subs": ["ClaudeAI", "ClaudeCode"]},
+  {"q": "code review skill false positives", "subs": ["ClaudeAI", "ClaudeCode", "ExperiencedDevs"]},
+  {"q": "humanizer skill AI writing", "subs": ["ClaudeAI", "ChatGPTCoding"]},
+  {"q": "skills auto invoke description", "subs": ["ClaudeAI", "ClaudeCode"]},
+  {"q": "CLAUDE.md too long ignored", "subs": ["ClaudeAI", "ClaudeCode"]}
+]
