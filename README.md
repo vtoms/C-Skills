@@ -2,7 +2,7 @@
 
 Agent Skills for Claude Code. They're distilled from the two most-discussed skill packs of 2026, Matt Pocock's [AI Hero skills](https://www.aihero.dev/skills) and Lauren Tan's [pstack](https://github.com/backnotprop/pstack), and rewritten to fix what their users complained about. See [NOTICE.md](NOTICE.md) for attribution.
 
-**Status: v0.2.** Both Perplexity rounds are folded in ([AI Hero changes](docs/research-findings.md#changes-made-in-response-v01), [pstack changes](docs/research-findings.md#changes-made-in-response-v02)). Independent adversarial checks follow ([plan](docs/adversarial-verification-plan.md)).
+**Status: v0.5.2, verified.** Both Perplexity rounds are folded in. The skills then went through three rounds of independent adversarial checks: a red-team pass, a regression pass, and a final pass on fresh held-out prompts. Results are in [docs/verification/](docs/verification/), summarised below.
 
 ## Skills
 
@@ -24,10 +24,25 @@ They live in `.claude/skills/`, so Claude Code loads them automatically in this 
 
 **Left out on purpose:** autopilot, shipping and auto-merge playbooks, `sudo`/`curl | sh` installers, `@latest` dependencies, and multi-provider model routing. Those were the security and cost complaints raised about pstack. Skills may *recommend* a merge or push; enforce the real limits with branch protection and scoped tokens, not with instructions in a SKILL.md.
 
+## Verification summary
+
+- **Static checks:** `tests/validate_skills.py` parses real YAML and rejects unknown frontmatter keys, non-third-person descriptions, missing trigger clauses, over-long descriptions, reserved names and unsafe commands. It caught three invalid-YAML regressions during development.
+- **Routing (blind, descriptions only):** 40/40 on a fresh held-out set, 48/48 on the original set.
+- **Live activation (real headless sessions):** 67/80 on fresh prompts, with no false loads on any of the 20 should-not-fire prompts. `blast-radius` and `tdd` loaded every time. `diagnose` has the main gap: it is under-triggered on question-phrased bug reports, so invoke `/diagnose` when it matters.
+- **Behaviour (blind three-arm test: none / placebo / real):** no measurable outcome gain on a strong model. All 18 runs succeeded in every arm. The value of these skills is consistency, safety rails, and a fixed report shape, not extra intelligence. See [round1-behaviour](docs/verification/round1-behaviour/RESULTS.md).
+- **Safety fixes found by red-teaming:**
+  - `handoff` used to commit and push all work without asking.
+  - `handoff` could leak already-staged files into its commit.
+  - `interrogate` silently dropped committed work when no merge base existed.
+  - `diagnose`'s debug-log check matched its own text.
+
+  All fixed and re-verified.
+
 ## Tests
 
 ```bash
-python3 tests/validate_skills.py   # frontmatter, kebab-case names, built-in name clashes, unsafe command patterns
+python3 tests/validate_skills.py                                   # static frontmatter + safety checks
+python3 tests/live/activation.py cases.json --runs 2 --jobs 10     # live: does Claude Code actually load the skill?
 ```
 
 `tests/fixtures/` holds the v0 behavioural fixtures:

@@ -1,0 +1,308 @@
+[
+  {
+    "id": "rg-01",
+    "run": 0,
+    "expected": "diagnose",
+    "invoked": [
+      "diagnose"
+    ],
+    "correct": true
+  },
+  {
+    "id": "rg-01",
+    "run": 1,
+    "expected": "diagnose",
+    "invoked": [
+      "diagnose"
+    ],
+    "correct": true
+  },
+  {
+    "id": "rg-02",
+    "run": 0,
+    "expected": "diagnose",
+    "invoked": [],
+    "correct": false
+  },
+  {
+    "id": "rg-02",
+    "run": 1,
+    "expected": "diagnose",
+    "invoked": [],
+    "correct": false
+  },
+  {
+    "id": "rg-03",
+    "run": 0,
+    "expected": "diagnose",
+    "invoked": [],
+    "correct": false
+  },
+  {
+    "id": "rg-03",
+    "run": 1,
+    "expected": "diagnose",
+    "invoked": [],
+    "correct": false
+  },
+  {
+    "id": "rg-04",
+    "run": 0,
+    "expected": "diagnose",
+    "invoked": [
+      "diagnose"
+    ],
+    "correct": true
+  },
+  {
+    "id": "rg-04",
+    "run": 1,
+    "expected": "diagnose",
+    "invoked": [
+      "diagnose"
+    ],
+    "correct": true
+  },
+  {
+    "id": "rg-05",
+    "run": 0,
+    "expected": "diagnose",
+    "invoked": [],
+    "correct": false
+  },
+  {
+    "id": "rg-05",
+    "run": 1,
+    "expected": "diagnose",
+    "invoked": [],
+    "correct": false
+  },
+  {
+    "id": "rg-06",
+    "run": 0,
+    "expected": "diagnose",
+    "invoked": [
+      "diagnose"
+    ],
+    "correct": true
+  },
+  {
+    "id": "rg-06",
+    "run": 1,
+    "expected": "diagnose",
+    "invoked": [],
+    "correct": false
+  },
+  {
+    "id": "rg-07",
+    "run": 0,
+    "expected": "grill",
+    "invoked": [
+      "grill"
+    ],
+    "correct": true
+  },
+  {
+    "id": "rg-07",
+    "run": 1,
+    "expected": "grill",
+    "invoked": [
+      "grill"
+    ],
+    "correct": true
+  },
+  {
+    "id": "rg-08",
+    "run": 0,
+    "expected": "grill",
+    "invoked": [],
+    "correct": false
+  },
+  {
+    "id": "rg-08",
+    "run": 1,
+    "expected": "grill",
+    "invoked": [],
+    "correct": false
+  },
+  {
+    "id": "rg-09",
+    "run": 0,
+    "expected": "grill",
+    "invoked": [
+      "grill"
+    ],
+    "correct": true
+  },
+  {
+    "id": "rg-09",
+    "run": 1,
+    "expected": "grill",
+    "invoked": [
+      "grill"
+    ],
+    "correct": true
+  },
+  {
+    "id": "rg-10",
+    "run": 0,
+    "expected": "grill",
+    "invoked": [
+      "grill"
+    ],
+    "correct": true
+  },
+  {
+    "id": "rg-10",
+    "run": 1,
+    "expected": "grill",
+    "invoked": [
+      "grill"
+    ],
+    "correct": true
+  },
+  {
+    "id": "rg-11",
+    "run": 0,
+    "expected": "none",
+    "invoked": [],
+    "correct": true
+  },
+  {
+    "id": "rg-11",
+    "run": 1,
+    "expected": "none",
+    "invoked": [],
+    "correct": true
+  },
+  {
+    "id": "rg-12",
+    "run": 0,
+    "expected": "none",
+    "invoked": [],
+    "correct": true
+  },
+  {
+    "id": "rg-12",
+    "run": 1,
+    "expected": "none",
+    "invoked": [],
+    "correct": true
+  },
+  {
+    "id": "rg-13",
+    "run": 0,
+    "expected": "none",
+    "invoked": [],
+    "correct": true
+  },
+  {
+    "id": "rg-13",
+    "run": 1,
+    "expected": "none",
+    "invoked": [],
+    "correct": true
+  },
+  {
+    "id": "rg-14",
+    "run": 0,
+    "expected": "none",
+    "invoked": [],
+    "correct": true
+  },
+  {
+    "id": "rg-14",
+    "run": 1,
+    "expected": "none",
+    "invoked": [],
+    "correct": true
+  },
+  {
+    "id": "rg-15",
+    "run": 0,
+    "expected": "none",
+    "invoked": [],
+    "correct": true
+  },
+  {
+    "id": "rg-15",
+    "run": 1,
+    "expected": "none",
+    "invoked": [],
+    "correct": true
+  },
+  {
+    "id": "rg-16",
+    "run": 0,
+    "expected": "none",
+    "invoked": [],
+    "correct": true
+  },
+  {
+    "id": "rg-16",
+    "run": 1,
+    "expected": "none",
+    "invoked": [],
+    "correct": true
+  },
+  {
+    "id": "rg-17",
+    "run": 0,
+    "expected": "none",
+    "invoked": [],
+    "correct": true
+  },
+  {
+    "id": "rg-17",
+    "run": 1,
+    "expected": "none",
+    "invoked": [],
+    "correct": true
+  },
+  {
+    "id": "rg-18",
+    "run": 0,
+    "expected": "none",
+    "invoked": [
+      "blast-radius"
+    ],
+    "correct": false
+  },
+  {
+    "id": "rg-18",
+    "run": 1,
+    "expected": "none",
+    "invoked": [
+      "blast-radius"
+    ],
+    "correct": false
+  },
+  {
+    "id": "rg-19",
+    "run": 0,
+    "expected": "none",
+    "invoked": [],
+    "correct": true
+  },
+  {
+    "id": "rg-19",
+    "run": 1,
+    "expected": "none",
+    "invoked": [],
+    "correct": true
+  },
+  {
+    "id": "rg-20",
+    "run": 0,
+    "expected": "none",
+    "invoked": [],
+    "correct": true
+  },
+  {
+    "id": "rg-20",
+    "run": 1,
+    "expected": "none",
+    "invoked": [],
+    "correct": true
+  }
+]

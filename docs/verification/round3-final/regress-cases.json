@@ -1,0 +1,22 @@
+[
+{"id":"rg-01","prompt":"Why does our checkout test only fail on the GitHub runner and never on my laptop? It's been red on main for two days and rerunning sometimes makes it pass.","expected":"diagnose"},
+{"id":"rg-02","prompt":"Why do some orders show up twice in the nightly export, but only for customers in the EU region? Started after last Tuesday's deploy.","expected":"diagnose"},
+{"id":"rg-03","prompt":"Why does the Android build of our app freeze on the splash screen only on Samsung devices running Android 14? iOS and the emulator are fine.","expected":"diagnose"},
+{"id":"rg-04","prompt":"Why is /api/search taking 4 seconds now when it took 200ms last week? Nothing obvious changed in that handler.","expected":"diagnose"},
+{"id":"rg-05","prompt":"I patched the null check you suggested yesterday but the worker still crashes every few hours with exit code 137. Why is it still happening?","expected":"diagnose"},
+{"id":"rg-06","prompt":"How come the invoice totals in our PDF are off by a cent only when the cart has more than 10 line items? The unit tests all pass.","expected":"diagnose"},
+{"id":"rg-07","prompt":"I want to add multi-tenant support to our SaaS but I haven't figured out whether tenants get separate schemas, separate DBs, or a tenant_id column, or how billing ties in. Can we work through it before I start coding?","expected":"grill"},
+{"id":"rg-08","prompt":"Here's my one-page plan for migrating our cron jobs to a queue-based system. Poke holes in it - what am I not thinking about?","expected":"grill"},
+{"id":"rg-09","prompt":"We're about to build offline sync for the mobile app. I'm still torn on conflict resolution, what's stored locally, and how we handle schema changes. Interrogate me until we've nailed it down.","expected":"grill"},
+{"id":"rg-10","prompt":"Before my team starts on the new permissions system next sprint, I'd like you to push back on my design doc and make me decide the open questions (role inheritance, audit logging, API shape).","expected":"grill"},
+{"id":"rg-11","prompt":"What does ECONNRESET mean in Node and when does it typically get thrown?","expected":"none"},
+{"id":"rg-12","prompt":"Why is Python's GIL considered a problem for CPU-bound workloads?","expected":"none"},
+{"id":"rg-13","prompt":"Can you walk me through what this Java stack trace is saying, line by line?\n\nException in thread \"main\" java.lang.NullPointerException\n  at com.acme.Foo.bar(Foo.java:42)\n  at com.acme.Main.main(Main.java:10)","expected":"none"},
+{"id":"rg-14","prompt":"Design me a simple REST API for a todo app - endpoints, request/response shapes, status codes.","expected":"none"},
+{"id":"rg-15","prompt":"Should I use Redis or Memcached for caching session data in a small Django app? Just give me your pick and the reason.","expected":"none"},
+{"id":"rg-16","prompt":"Why is our revenue down 12% this quarter compared to last? Here's the sales CSV broken down by region.","expected":"none"},
+{"id":"rg-17","prompt":"Why are linked lists slower than arrays for iteration in practice, even though both are O(n)?","expected":"none"},
+{"id":"rg-18","prompt":"What could break if I rename the user_id column to account_id in the events table?","expected":"none"},
+{"id":"rg-19","prompt":"Sketch out a database schema for a library management system with books, members, and loans.","expected":"none"},
+{"id":"rg-20","prompt":"Why does Kubernetes restart a pod with CrashLoopBackOff in general - what are the usual causes people run into?","expected":"none"}
+]
