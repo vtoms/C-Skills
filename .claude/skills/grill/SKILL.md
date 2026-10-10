@@ -1,6 +1,6 @@
 ---
 name: grill
-description: Interviews the user about a plan, feature, or design in short rounds of high-impact questions, each with a recommended answer, until every open decision is settled, then records the decisions in a file. Use when the user says "grill me", asks to be challenged on a plan, wants its gaps or risks found, or wants to settle decisions before building. Not for reviewing code or PRs, debugging, one-line fixes, or questions with an obvious answer.
+description: Interviews the user about a plan, feature, or design in short rounds of high-impact questions, each with a recommended answer, until every open decision is settled, then records the decisions in a file. Use when the user says "grill me", asks what they are missing, asks to be pushed back on or challenged, wants gaps or risks in a plan found, or wants to settle decisions before building. Not for reviewing code or PRs, debugging, one-line fixes, or questions with an obvious answer.
 argument-hint: "[plan, file, or topic to grill]"
 ---
 

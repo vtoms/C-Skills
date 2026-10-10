@@ -1,6 +1,6 @@
 ---
 name: prove-it
-description: Verifies a finished change against the real artifact - runs the repro, test, or app and reads the actual output - then reports an evidence level. Use before saying a bug is fixed, a feature works, or a config change took effect, or when the user asks to verify, confirm, double-check, or prove something works. Not for questions, planning, or text-only edits.
+description: Verifies a finished change against the real artifact - runs the repro, test, app, or a request against the running or deployed system and reads the actual output - then reports an evidence level. Use before saying a bug is fixed, a feature works, or a config or deploy took effect, and when the user asks to verify, confirm, or check that something actually works (locally or on staging). Not for questions, planning, or text-only edits.
 ---
 
 # Prove it
