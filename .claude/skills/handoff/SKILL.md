@@ -12,7 +12,7 @@ Write a document that lets a fresh agent continue without reading this conversat
 ## Contents
 
 1. **Goal** - what the user ultimately wants, in their words.
-2. **State** - branch; commits (SHA, pushed yes/no); uncommitted or untracked changes and whether they will survive; what's in progress; what's untouched. Tag each claim that something works, is broken, or is done as **verified** (the command you ran and its result, e.g. `npm test -> 3 failing`) or **unverified** (read or assumed) - never write a belief as a fact. Give the one command that shows current status and quote its output or errors verbatim.
+2. **State** - branch; commits (SHA, pushed yes/no); uncommitted or untracked changes and whether they will survive; what's in progress; what's untouched. Tag each claim that something works, is broken, or is done as **verified** (the command you ran and its result, e.g. `npm test -> 3 failing`) or **unverified** (read or assumed) - never write a belief as a fact. Give the one command that shows current status and quote the relevant lines of its output or errors verbatim (secrets redacted).
 3. **Decisions** - with the reason for each and whose call it was (the user's, or your own); list anything the user said not to do. Link decision files instead of repeating them.
 4. **Dead ends** - what was tried and why it failed, so nobody retries it.
 5. **Next steps** - ordered; the first concrete enough to start immediately.
@@ -27,7 +27,7 @@ Reference existing artifacts (specs, issues, commits, files) by path or URL; don
 - Write to `docs/handoffs/<YYYY-MM-DD>-<topic>.md`.
 - Commit **only the handoff file** - `git commit -m "..." -- <file>` after `git add <file>`, so anything already staged stays out - on the current branch. If that is the default branch, ask first.
 - **Ask before pushing.** Never commit or push other changes without the user's OK.
-- If committing or pushing is declined or fails, say the file is temporary and will be lost with the environment (offer to move it to the scratchpad if one exists), and inline the next steps in the resume prompt instead of relying on the file path.
+- If committing or pushing is declined or fails, say the file is temporary and will be lost with the environment (offer to move it to the scratchpad if one exists), and inline the branch, commit SHAs, the status command with its last result, and the next steps in the resume prompt instead of relying on the file path.
 
 ## Finish
 

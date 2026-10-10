@@ -28,18 +28,18 @@ Push each claim as high on this list as is cheap, and say where it stopped:
 
 - **Fresh evidence only.** Output from before my last edit doesn't count - re-run after the final change.
 - **Check directly.** Read the actual value, query the real process, open the real file - not mtimes, cached output, or a subagent's self-report (check its diff).
-- **Read all of it.** Check the exit code and pass/fail/skip counts, not a `tail` or `grep`. A filtered run proves only its subset.
+- **Read the whole result.** Check the exit code and the summary pass/fail/skip counts - don't infer success from a `tail` or `grep` of the log. A filtered run proves only its subset.
 - **Re-run the original failure.** For a fix, run the exact repro that failed before and show it passing now.
 - **Use the user's path.** Drive the real entry point, not internal setters or test-only endpoints, and check side effects. Don't trust a dry-run flag's name - observe what it skips.
-- **UI changes:** drive the page (the `run` skill or Playwright), look at the screenshot, and check the console for errors.
+- **UI changes:** if a browser tool is available (the `run` skill, or Playwright if installed - ask before installing it), drive the page, look at the screenshot, and check the console for errors. Otherwise list the UI check under "Not verified".
 - **Use the repo's own checks first** - its verify script or skill, the built-in `run` skill, smoke test, lint, typecheck, and the tests for the touched package. If I've done the same manual check twice, propose scripting it, but don't create a new verification skill when one of these fits.
 - **No repro and no tests?** Write a throwaway script in a scratch directory that calls the real code and would fail on the old behaviour. Run it, keep its output, delete it afterwards.
-- **When a check fails, suspect the check before the system** - confirm I'm observing the right thing. But never make a red check green by weakening, skipping, or deleting it.
+- **When a check fails, suspect the check before the system** - confirm I'm observing the right thing. But never make a red check green by weakening, skipping, or deleting it. If the failure is real and its cause isn't obvious, hand off to `diagnose`.
 - **Stay safe.** Read-only checks (GET requests, status, logs) may hit any environment. Run anything that writes locally or on staging; ask before writing to production or shared data, or anything that sends, charges, migrates, deploys, or pushes.
 
 ## Measured numbers
 
-Only for speed, memory, or capacity claims: at least 5 alternating runs per side on the same machine; report median and range, count errors, and confirm the work actually ran in the timed region. A gap inside the run-to-run range is "no measurable difference". Otherwise the verdict is INCONCLUSIVE.
+Only for speed, memory, or capacity claims: at least 5 alternating runs per side on the same machine; report median and range, count errors, and confirm the work actually ran in the timed region. A gap outside the run-to-run range is a measured difference; a gap inside it is "no measurable difference". If these conditions can't be met, report the number as inconclusive under "Not verified".
 
 ## Report
 

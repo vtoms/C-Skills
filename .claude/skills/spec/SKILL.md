@@ -11,7 +11,7 @@ Synthesis, not another interview.
 
 ## Source
 
-Use the argument if given, else this conversation, else the newest file in `docs/decisions/`. If none of these contains decisions, say so and ask for them (or suggest running /grill first). If one open decision blocks every slice, ask that single question and stop; other open decisions go under **Open questions**. Don't invent requirements to fill gaps.
+Use the argument if given, else this conversation, else the newest file in the repo's decisions location (default `docs/decisions/`). If none of these contains decisions, say so and ask for them (or suggest running /grill first). If one open decision blocks every slice, ask that single question and stop; other open decisions go under **Open questions**. Don't invent requirements to fill gaps.
 
 ## Size it
 
@@ -34,7 +34,7 @@ Save to `docs/specs/<topic>.md` (or the user's preferred place); never overwrite
 
 Each slice is a **vertical tracer bullet**: thin, end-to-end, demoable, mergeable on its own - never "all the schema", then "all the API".
 
-**Exception - wide mechanical changes** (rename a column, retype a shared symbol): one edit breaks every caller, so slice them expand → migrate → contract. Expand adds the new form beside the old; migrate moves callers in batches (per package or directory), each green on its own; contract deletes the old form once no caller remains. If external consumers or persisted data exist, run `/blast-radius` before the contract slice.
+**Exception - wide mechanical changes** (rename a column, retype a shared symbol): one edit breaks every caller, so slice them expand → migrate → contract. Expand adds the new form beside the old (for stored data: new column, dual-write, backfill); migrate is one slice whose batches (per package or directory) are separate PRs, each green on its own; contract deletes the old form once no caller remains. If external consumers or persisted data exist, the contract slice's "Done when" includes a clean `blast-radius` check.
 
 For each slice:
 

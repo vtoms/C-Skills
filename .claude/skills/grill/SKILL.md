@@ -50,7 +50,7 @@ Prefer the `AskUserQuestion` tool when available (up to 4 questions with options
 → Recommended: <answer> — <one-line why>
 ```
 
-Word each question so "yes" accepts the recommendation. Mark **⚠** questions that are hard to reverse (stored data, public interfaces, money, security); a blanket "ok" doesn't cover them. End the round with: "Reply 'ok' to take all unmarked recommendations, or answer by number."
+Word each question so "yes" accepts the recommendation. Mark **⚠** questions that are hard to reverse (stored data, public interfaces, money, security); a blanket "ok" doesn't cover them - re-ask each unanswered ⚠ question on its own before moving on, and never record one as `default`. End the round with: "Reply 'ok' to take all unmarked recommendations, or answer by number."
 
 ## Stop
 
@@ -58,4 +58,4 @@ Stop when no remaining question would change the outcome, or the user says "you 
 
 ## Record
 
-After the user confirms, write the decisions to the repo's existing ADR/decisions location if there is one, else `docs/decisions/<topic>.md` (or where the user prefers) - one line each: decision, choice, reason, and `chosen` (the user picked it) or `default` (via recommendation, "ok", or "you decide"). Suggest an ADR only for decisions hard to reverse, surprising, and a real trade-off. Never overwrite an existing file; append a dated section to it instead. Later work cites this file instead of re-asking. Say the file is uncommitted and offer to commit it (ask before pushing); if the work spans several PRs, suggest `/spec <path>` next. If the session is long, suggest continuing in a fresh session that starts from that file.
+After the user confirms, write the decisions to the repo's existing decisions location if there is one, else `docs/decisions/<topic>.md` (or where the user prefers) - one line each: decision, choice, reason, and `chosen` (the user picked it) or `default` (via recommendation, "ok", or "you decide"). Propose a separate ADR (in the repo's ADR folder, if any) only for decisions that are hard to reverse, surprising, and a real trade-off. Never overwrite an existing file; append a dated section to it instead. Later work cites this file instead of re-asking. Say the file is uncommitted and offer to commit it (ask before pushing); if the work spans several PRs, suggest `/spec <path>` next. If the session is long, suggest continuing in a fresh session that starts from that file.

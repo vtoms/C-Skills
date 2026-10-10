@@ -24,10 +24,13 @@ OURS = {d.name for d in (REPO / ".claude" / "skills").iterdir() if d.is_dir()}
 def skills_invoked(prompt, timeout):
     cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose",
            "--max-turns", "3", "--allowedTools", TOOLS]
+    # Decode as UTF-8 explicitly: on Windows the default is the ANSI code page,
+    # and one undecodable byte leaves proc.stdout as None.
     proc = subprocess.run(cmd, cwd=REPO, capture_output=True, text=True,
+                          encoding="utf-8", errors="replace",
                           timeout=timeout, stdin=subprocess.DEVNULL)
     found = []
-    for line in proc.stdout.splitlines():
+    for line in (proc.stdout or "").splitlines():
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
@@ -50,13 +53,15 @@ def main():
     ap.add_argument("--start", type=int, default=0, help="skip the first N cases (resume)")
     ap.add_argument("--jobs", type=int, default=8, help="sessions to run in parallel")
     args = ap.parse_args()
-    cases = json.loads(pathlib.Path(args.cases).read_text())
+    cases = json.loads(pathlib.Path(args.cases).read_text(encoding="utf-8"))
     def run_one(job):
         case, run = job
         try:
             invoked = skills_invoked(case["prompt"], args.timeout)
         except subprocess.TimeoutExpired:
             invoked = ["<timeout>"]
+        except Exception as exc:  # one failed session must not abort the whole run
+            invoked = [f"<error: {type(exc).__name__}>"]
         # "none" means none of this repo's skills should load (built-ins are fine).
         ours = [s for s in invoked if s in OURS]
         hit = case["expected"] in invoked if case["expected"] != "none" else not ours
@@ -71,7 +76,7 @@ def main():
     if args.out == "-":
         print(text)
     else:
-        pathlib.Path(args.out).write_text(text)
+        pathlib.Path(args.out).write_text(text, encoding="utf-8")
     ok = sum(r["correct"] for r in results)
     print(f"{ok}/{len(results)} correct", file=sys.stderr)
 

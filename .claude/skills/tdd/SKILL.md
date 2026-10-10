@@ -26,7 +26,7 @@ When the list is empty: re-read the request and add a behaviour for any requirem
 ## Tests worth keeping
 
 - Behaviour through the public interface; survives an internal rewrite.
-- Expected values from an independent source - a worked example, the spec, a known-good literal. Never recompute them the way the code does (`expect(add(a,b)).toBe(a+b)` cannot fail). Reject a test that would still pass if the code returned `undefined`/`None` (only `toBeDefined`, `toBeTruthy`, `not.toThrow`).
+- Expected values from an independent source - a worked example, the spec, a known-good literal. Never recompute them the way the code does (`expect(add(a,b)).toBe(a+b)` cannot fail). Reject a test that would still pass if the code returned `undefined`/`None`, unless that is the specified result (only `toBeDefined`, `toBeTruthy`, `not.toThrow`).
 - Mocks only at system boundaries (network, clock, filesystem, randomness). Assert what the mock received, not just that it was called.
 - Time and async - inject the clock; wait for a condition with a timeout, never a fixed sleep.
 - Named as a specification: "rejects checkout when cart is empty".

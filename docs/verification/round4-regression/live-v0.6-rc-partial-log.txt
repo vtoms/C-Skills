@@ -1,0 +1,99 @@
+A-v2-01 run0: expected=grill invoked=['grill'] OK
+A-v2-03 run0: expected=grill invoked=['grill'] OK
+A-v2-01 run1: expected=grill invoked=['grill'] OK
+A-v2-03 run1: expected=grill invoked=['grill'] OK
+A-v2-02 run0: expected=grill invoked=['grill'] OK
+A-v2-02 run1: expected=grill invoked=['grill'] OK
+A-v2-05 run0: expected=grill invoked=['grill'] OK
+A-v2-04 run0: expected=grill invoked=[] MISS
+A-v2-06 run1: expected=diagnose invoked=['diagnose'] OK
+A-v2-06 run0: expected=diagnose invoked=['diagnose'] OK
+A-v2-05 run1: expected=grill invoked=['grill'] OK
+A-v2-07 run0: expected=diagnose invoked=['diagnose'] OK
+A-v2-04 run1: expected=grill invoked=[] MISS
+A-v2-09 run1: expected=diagnose invoked=['diagnose'] OK
+A-v2-09 run0: expected=diagnose invoked=['diagnose'] OK
+A-v2-08 run1: expected=diagnose invoked=['diagnose'] OK
+A-v2-11 run0: expected=prove-it invoked=['prove-it'] OK
+A-v2-10 run0: expected=diagnose invoked=['diagnose'] OK
+A-v2-08 run0: expected=diagnose invoked=['diagnose'] OK
+A-v2-07 run1: expected=diagnose invoked=['diagnose'] OK
+A-v2-10 run1: expected=diagnose invoked=['diagnose'] OK
+A-v2-11 run1: expected=prove-it invoked=['prove-it'] OK
+A-v2-12 run0: expected=prove-it invoked=['prove-it'] OK
+A-v2-12 run1: expected=prove-it invoked=['prove-it'] OK
+A-v2-14 run1: expected=prove-it invoked=['prove-it'] OK
+A-v2-13 run1: expected=prove-it invoked=['prove-it'] OK
+A-v2-13 run0: expected=prove-it invoked=['prove-it'] OK
+A-v2-15 run0: expected=prove-it invoked=['prove-it'] OK
+A-v2-16 run0: expected=blast-radius invoked=['blast-radius'] OK
+A-v2-14 run0: expected=prove-it invoked=['prove-it'] OK
+A-v2-16 run1: expected=blast-radius invoked=['blast-radius'] OK
+A-v2-15 run1: expected=prove-it invoked=[] MISS
+A-v2-17 run0: expected=blast-radius invoked=['blast-radius'] OK
+A-v2-19 run0: expected=blast-radius invoked=['blast-radius'] OK
+A-v2-18 run0: expected=blast-radius invoked=['blast-radius'] OK
+A-v2-17 run1: expected=blast-radius invoked=['blast-radius'] OK
+A-v2-18 run1: expected=blast-radius invoked=['blast-radius'] OK
+A-v2-20 run1: expected=blast-radius invoked=['blast-radius'] OK
+A-v2-20 run0: expected=blast-radius invoked=['blast-radius'] OK
+A-v2-21 run1: expected=tdd invoked=['tdd'] OK
+A-v2-21 run0: expected=tdd invoked=['tdd'] OK
+A-v2-19 run1: expected=blast-radius invoked=['blast-radius'] OK
+A-v2-22 run1: expected=tdd invoked=['tdd'] OK
+A-v2-22 run0: expected=tdd invoked=['tdd'] OK
+A-v2-23 run0: expected=tdd invoked=['tdd'] OK
+A-v2-24 run0: expected=tdd invoked=['tdd'] OK
+A-v2-24 run1: expected=tdd invoked=['tdd'] OK
+A-v2-23 run1: expected=tdd invoked=['tdd'] OK
+A-v2-25 run0: expected=tdd invoked=['tdd'] OK
+A-v2-26 run0: expected=none invoked=[] OK
+Exception in thread Thread-103 (_readerthread):
+Traceback (most recent call last):
+  File "C:\Users\visha\AppData\Local\Programs\Python\Python313\Lib\threading.py", line 1043, in _bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Users\visha\AppData\Local\Programs\Python\Python313\Lib\threading.py", line 994, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\visha\AppData\Local\Programs\Python\Python313\Lib\subprocess.py", line 1615, in _readerthread
+    buffer.append(fh.read())
+                  ~~~~~~~^^
+  File "C:\Users\visha\AppData\Local\Programs\Python\Python313\Lib\encodings\cp1252.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x90 in position 7445: character maps to <undefined>
+A-v2-27 run0: expected=none invoked=[] OK
+A-v2-27 run1: expected=none invoked=[] OK
+A-v2-25 run1: expected=tdd invoked=['tdd'] OK
+A-v2-29 run0: expected=none invoked=[] OK
+A-v2-29 run1: expected=none invoked=[] OK
+A-v2-28 run0: expected=none invoked=[] OK
+A-v2-28 run1: expected=none invoked=[] OK
+A-v2-30 run0: expected=none invoked=[] OK
+A-v2-30 run1: expected=none invoked=[] OK
+Traceback (most recent call last):
+  File "C:\Users\visha\C-Skills\tests\live\activation.py", line 80, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\visha\C-Skills\tests\live\activation.py", line 69, in main
+    results = list(pool.map(run_one, jobs))
+  File "C:\Users\visha\AppData\Local\Programs\Python\Python313\Lib\concurrent\futures\_base.py", line 619, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\visha\AppData\Local\Programs\Python\Python313\Lib\concurrent\futures\_base.py", line 317, in _result_or_cancel
+    return fut.result(timeout)
+           ~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\visha\AppData\Local\Programs\Python\Python313\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\visha\AppData\Local\Programs\Python\Python313\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\visha\AppData\Local\Programs\Python\Python313\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "C:\Users\visha\C-Skills\tests\live\activation.py", line 57, in run_one
+    invoked = skills_invoked(case["prompt"], args.timeout)
+  File "C:\Users\visha\C-Skills\tests\live\activation.py", line 30, in skills_invoked
+    for line in proc.stdout.splitlines():
+                ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'splitlines'

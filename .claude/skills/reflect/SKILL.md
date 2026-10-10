@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 A lesson that lives only in chat is forgotten next session. Encode it in structure.
 
-Worth running after a difficult, failed, or heavily corrected session. After a smooth one, say there's nothing durable to learn and stop.
+Worth running after a difficult, failed, or heavily corrected session. After a smooth one, say there's nothing durable to learn and stop (repo mode is exempt).
 
 ## 1. Collect candidates
 
@@ -29,7 +29,7 @@ For each candidate, quote the session moment that shows it; drop any you can't p
 - **Code defects** → a test, type, or lint rule that makes the mistake fail CI.
 - **Process mistakes that recurred despite a written rule, or are costly** → a script or hook that checks automatically; otherwise a CLAUDE.md line first.
 - **Workflow gaps** → an edit to an existing skill in `.claude/skills/` (edit; don't append duplicates). A new skill only when a repeated, non-trivial workflow has no home.
-- **One-line conventions and facts** → CLAUDE.md only if it applies across the whole repo; a narrower one goes in a path-scoped rule file (e.g. `.claude/rules/<topic>.md`) or the relevant skill. If CLAUDE.md is near 200 lines, pair the addition with a removal.
+- **One-line conventions and facts** → CLAUDE.md only if it applies across the whole repo; a narrower one goes in a path-scoped rule file (e.g. `.claude/rules/<topic>.md` with `paths:` frontmatter, so it loads only for matching files) or the relevant skill. If CLAUDE.md is near 200 lines, pair the addition with a removal.
 
 A written rule that was still broken needs a check (test, lint, or hook), not another line.
 
@@ -38,5 +38,5 @@ A written rule that was still broken needs a check (test, lint, or hook), not an
 1. Show a table: lesson → home → exact edit (diff or new lines).
 2. Apply only what the user approves. If nothing is approved, stop.
 3. Edit only files in this project named in the rows the user approved - never `~/.claude` or other user-level files unless the user asks. Keep each edit minimal, in the target file's style, and never add a rule that contradicts an existing one without resolving it.
-4. For each test, hook, or lint rule added, show it catching the original mistake before calling it done. Its error message names the fix (the function, file, or command to use instead); if the bad pattern already exists elsewhere, fail only on new occurrences.
+4. For each test, hook, or lint rule added, show it catching a reintroduction of the original mistake before calling it done. Its error message names the fix (the function, file, or command to use instead); if the bad pattern already exists elsewhere, fail only on new occurrences.
 5. In the same table, propose deleting the prose rules each new check supersedes.

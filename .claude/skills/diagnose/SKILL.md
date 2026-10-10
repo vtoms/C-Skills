@@ -1,6 +1,6 @@
 ---
 name: diagnose
-description: 'Finds why a specific system misbehaves when the cause is unknown. Use when the user reports or asks about a bug, including "why does X only happen on Y?" or two numbers that should match but don''t, before naming likely causes - flaky, CI-, prod- or device-only failures, regressions, crashes, hangs, wrong or duplicated data, slowdowns, leaks, or a fix that did not work. Not for conceptual questions, explaining an error, why a business metric moved, obvious stack traces, or lint/build errors.'
+description: 'Finds why a specific system misbehaves when the cause is unknown. Use when the user reports or asks about a bug, including "why does X only happen on Y?" or two numbers that should match but don''t, before naming likely causes - flaky, CI-, prod- or device-only failures, regressions, crashes, hangs, wrong, missing or duplicated data, slowdowns, leaks, or a fix that failed. Not for conceptual questions, explaining an error, business-metric moves, obvious stack traces, or lint/build errors.'
 when_to_use: 'Bug reports phrased as questions count, e.g. "how come the export drops rows only on Mondays?" or "the worker still gets OOM-killed after the patch - why?". Also when the system is not in this repo or cannot be run here; the skill then gives ranked hypotheses and the check that settles each.'
 ---
 
@@ -8,8 +8,8 @@ when_to_use: 'Bug reports phrased as questions count, e.g. "how come the export 
 
 ## First: which tier
 
-- **Can't reach the system from here** (no code, no environment, read-only, or the user only asked why): answer in one message - 3-5 ranked hypotheses, each with the one observation or command that would confirm or kill it. Mark them unverified, offer to build the red command given access, a log, or a capture, and stop there.
-- **Can reach it:** the gate below applies.
+- **Can't reach the system from here** (no code, no environment, read-only): answer in one message - 3-5 ranked hypotheses, each with the one observation or command that would confirm or kill it. Mark them unverified, offer to build the red command given access, a log, or a capture, and stop there.
+- **Can reach it:** the gate below applies. If the user only asked why, share the ranked hypotheses first, then build the red command unless told to stop.
 
 ## Gate: a red command before any theory
 

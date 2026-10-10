@@ -12,7 +12,7 @@ Throwaway code that answers one question. The answer is the deliverable; the cod
 ## Frame it
 
 Before writing code, state in one line each:
-- **Question** - one, answerable yes/no or by a measurement. If the argument holds several, ask which comes first.
+- **Question** - one, answerable yes/no, by a measurement, or by the user picking between variants. If the argument holds several, ask which comes first.
 - **Signal** - what result means yes and what means no.
 - **Time box** - default ~30 minutes or three attempts.
 
@@ -35,4 +35,4 @@ Unblocks: <the decision this settles>
 Code: delete (default) | keep at <path> - <why>
 ```
 
-Keeping spike code is a new request: rebuild it properly rather than promoting it. If a grill or decisions file is waiting on this, offer to append the answer there. Delete the scratch files once the user agrees.
+Keeping spike code is a new request: rebuild it properly rather than promoting it. If a grill or decisions file is waiting on this, offer to append the answer there. Delete the scratch files (and any spike worktree and branch) once the user agrees.

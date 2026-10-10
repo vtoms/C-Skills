@@ -58,7 +58,7 @@ def main():
         if not f.exists():
             errors.append(f"{d.name}: no SKILL.md")
             continue
-        fm, body = parse_frontmatter(f.read_text())
+        fm, body = parse_frontmatter(f.read_text(encoding="utf-8"))
         if fm is None:
             errors.append(f"{d.name}: {body}")
             continue
