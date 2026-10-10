@@ -1,42 +1,46 @@
 ---
 name: prove-it
-description: Verifies work against the real artifact (runs it, reads the actual value, inspects the real output) and reports an evidence level before anything is called done, fixed, or working. Use at the end of any code change, bug fix, or config change, and before claiming something works.
+description: Verifies a finished change against the real artifact - runs the repro, test, or app and reads the actual output - then reports an evidence level. Use before saying a bug is fixed, a feature works, or a config change took effect, or when the user asks to verify, confirm, double-check, or prove something works. Not for questions, planning, or text-only edits.
 ---
 
 # Prove it
 
 A summary that sounds right is not evidence. Check the real thing, not a proxy.
 
+## Size it first
+
+- **Text-only edits** (docs, comments, copy): look at the rendered result. Skip the rest of this skill.
+- **Code, config, or behaviour changes:** apply everything below.
+
 ## Evidence ladder
 
-Push each claim as far down this list as is cheap, and say where it stopped:
+Rate each claim on this list and say where it stopped:
 
-1. **Asserted** — I said so. Worth nothing alone.
-2. **Cited** — a real `file:line` or the library's own source.
-3. **Reasoned** — I walked the failure case step by step and it cannot happen.
-4. **Executed** — a test or script that calls the real code and fails loudly if I'm wrong.
-5. **Observed live** — reproduced in the running app, CLI, or service.
+1. **Asserted** - I said so.
+2. **Cited** - a real `file:line` or the library's own source.
+3. **Reasoned** - I walked the failure case step by step and it cannot happen.
+4. **Executed** - a test or script that calls the real code and fails loudly if I'm wrong.
+5. **Observed live** - reproduced in the running app, CLI, or service.
 
-Most changes should reach 4. "It compiles" and "the types check" are level 2 at best.
+"It compiles" and "types check" are level 2 at best.
 
 ## Rules
 
-- **Check directly.** Read the actual value, query the real process, open the real file. Not mtimes, cached output, or a subagent's self-report.
+- **Check directly.** Read the actual value, query the real process, open the real file - not mtimes, cached output, or a subagent's self-report.
 - **Re-run the original failure.** For a fix, run the exact repro that failed before and show it passing now.
-- **Run the repo's own checks.** Lint, typecheck, and the tests for the touched package, the way a contributor would.
-- **Use the repo's own verifier first.** If the project has a verify script, smoke test, or a skill that drives the app, run that. If I've done the same manual check twice in a session, propose turning it into a script so the next agent can run it.
-- **Script the check when I can.** A deterministic script someone can re-run beats a one-time look. Keep it out of the commit unless the work needs an audit trail.
-- **When verification fails, suspect the check first.** Make sure I'm observing the right thing before concluding the system is broken.
-- **Size it to the task.** A one-line docs fix needs a glance at the rendered result, not a test harness.
+- **Use the repo's own checks first** - its verify script, smoke test, lint, typecheck, and the tests for the touched package. If I've done the same manual check twice, propose scripting it.
+- **No repro and no tests?** Write a throwaway script in a scratch directory that calls the real code and would fail on the old behaviour. Run it, keep its output, delete it afterwards.
+- **When a check fails, suspect the check before the system** - confirm I'm observing the right thing. But never make a red check green by weakening, skipping, or deleting it.
+- **Stay safe.** Live checks run locally or on staging. Ask before touching production or shared data, or anything that sends, charges, migrates, deploys, or pushes.
 
 ## Report
 
-End with one short block:
+One line per claim, then the overall level (the lowest of them):
 
 ```
-Verified: <what I checked> — <command or method> — <result>
-Evidence level: <1-5>
-Not verified: <anything I could not check, and why>
+Verified: <claim> — <command or method> — <result> — level <n>
+Overall: level <n>
+Not verified: <what I could not check, and why>
 ```
 
-Never write "done" or "fixed" for something only at level 1–2 without saying so.
+Below level 4, don't write "done", "fixed", or "works" - write what was checked and what remains unproven.

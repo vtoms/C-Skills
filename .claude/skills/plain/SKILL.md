@@ -1,17 +1,19 @@
 ---
 name: plain
-description: Re-explains the previous assistant message in plain language when it did not land, keeping it short, concrete, and free of jargon. Use when the user says "wait what", "I don't follow", "say that simply", "ELI5", or "/plain".
+description: Re-explains the previous assistant reply in plain, short, jargon-free language, keeping its facts, options, and question intact.
+argument-hint: "[optional: which part to re-explain]"
 disable-model-invocation: true
 ---
 
 # Plain
 
-My last message didn't land. Say it again, better - don't just shorten it.
+The previous assistant reply did not land with the user. Re-explain it from a different angle - don't just compress it. If the user named a part, re-explain only that part.
 
-1. Open with one sentence of context: where we are and what the question or result is.
+1. Open with one sentence of context: where things stand and what the question or result is.
 2. Then the point, in the fewest words that keep it true.
-3. Use short sentences, active voice, and everyday words. Define any term the user didn't use first, or replace it.
-4. Use the project's own names for things (from the code or `GLOSSARY.md`), not my invented labels.
-5. If there's a decision for the user, end with it as one clear question.
+3. Use short sentences, active voice, and everyday words.
+4. Keep the project's own names for things (from the code, or `GLOSSARY.md` if present), and gloss each one the user didn't use in a few plain words the first time.
+5. Keep every number, file path, option label (a/b/c), and recommendation from the original, in the same order. Add no new claims.
+6. If there's a decision for the user, end with it as one clear question.
 
 No preamble, no apology, no "in other words". Under 120 words unless the content truly needs more.

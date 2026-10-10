@@ -88,7 +88,10 @@ def main():
             errors.append(f"{d.name}: description should be third person (found '{PRONOUN_RE.search(unquoted).group(0)}')")
         if desc.split()[0].lower() in IMPERATIVES:
             errors.append(f"{d.name}: description starts with an imperative ('{desc.split()[0]}'); use third person, e.g. 'Interviews...'")
-        if not WHEN_RE.search(desc):
+        manual = fm.get("disable-model-invocation", "false").lower() == "true"
+        # Only auto skills need trigger conditions: a manual skill's description is
+        # never in the model's context, it is just the /-menu label.
+        if not manual and not WHEN_RE.search(desc):
             errors.append(f"{d.name}: description should say when to use it")
         if UNSAFE_RE.search(body):
             errors.append(f"{d.name}: contains an unsafe command pattern: {UNSAFE_RE.search(body).group(0)!r}")

@@ -1,27 +1,32 @@
 ---
 name: spec
-description: Turns settled decisions from a grill, discussion, or issue into a short spec file with 2-6 independently shippable vertical slices that another agent or person can execute. Use when the user says "write a spec", "turn this into tickets", or "plan the PRs", or when work must survive across sessions or people.
+description: Turns already-settled decisions (a grill's decisions file, an issue, or this conversation) into a one-page spec at docs/specs/<topic>.md with 2-6 independently shippable vertical slices, each with a done-when check. Writes only the spec file; creates no issues or code unless asked afterwards.
 argument-hint: "[decisions file, issue, or topic]"
 disable-model-invocation: true
 ---
 
 # Spec
 
-Synthesis, not another interview. If a decision the spec needs is still open, list it under **Open questions** rather than starting a grill - unless it blocks every slice.
+Synthesis, not another interview.
+
+## Source
+
+Use the argument if given, else this conversation. If neither contains decisions, ask what to spec. If one open decision blocks every slice, ask that single question and stop; other open decisions go under **Open questions**. Don't invent requirements to fill gaps.
 
 ## Size it
 
-- Work that fits one PR: skip the spec; a 3-line plan in chat is enough.
-- Otherwise: one spec file and **2–6 slices**. More than 6 means the scope is too big - say so and propose a split.
+- **Fits one PR:** say so and offer a 3-line plan instead. Write the full spec anyway if the user still wants it.
+- **Otherwise:** one spec file and **2–6 slices**.
+- **Would need more than 6 slices:** say the scope is too big, propose a split, and stop until the user picks a part.
 
 ## The spec file
 
-Save to `docs/specs/<topic>.md` (or the user's preferred place). Keep it under a page and a half:
+Save to `docs/specs/<topic>.md` (or the user's preferred place); never overwrite an existing file. Keep it under a page and a half:
 
 1. **Problem** - who hurts and how, in the user's words.
 2. **Outcome** - what's true when this is done; observable, testable.
-3. **Decisions** - link `docs/decisions/<topic>.md` if a grill produced one; otherwise one line each with the reason.
-4. **Out of scope** - what we're deliberately not doing.
+3. **Decisions** - link the decisions file if a grill produced one; otherwise one line each with the reason.
+4. **Out of scope** - what is deliberately not being done.
 5. **Slices** - see below.
 6. **Open questions.**
 
@@ -41,4 +46,7 @@ Order so S1 is the smallest slice that proves the riskiest assumption.
 
 ## After writing
 
-Show the slice list in chat and ask before creating anything external. Only create GitHub issues (or any tracker items) when the user asks, one per slice, linking back to the spec. Don't start implementing until the user picks a slice.
+1. Show the slice list in chat.
+2. Say the spec file is uncommitted and offer to commit it. In an ephemeral environment, an uncommitted file is lost when the session ends.
+3. Create GitHub issues or tracker items only if the user asks - one per slice, linking to the spec's pushed path, or with the slice text inlined if it isn't pushed.
+4. Don't start implementing until the user picks a slice.

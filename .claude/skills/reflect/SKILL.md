@@ -1,6 +1,7 @@
 ---
 name: reflect
-description: Mines a finished session for durable lessons and turns each into a concrete guard (a test, lint rule, type, skill edit, or CLAUDE.md line) so the mistake cannot recur. Use when the user says "reflect", "retro", or "what should we learn from this".
+description: Reviews the current session for repeated mistakes and reusable facts, then proposes a concrete guard for each (test, lint rule, type, hook, skill edit, or CLAUDE.md line) and applies only the ones the user approves.
+argument-hint: "[optional: which problem to focus on]"
 disable-model-invocation: true
 ---
 
@@ -8,29 +9,29 @@ disable-model-invocation: true
 
 A lesson that lives only in chat is forgotten next session. Encode it in structure.
 
-Worth running after a difficult, failed, or heavily corrected session. After a smooth one, say there's nothing durable to learn and stop. Reflection on every session is its own overhead.
+Worth running after a difficult, failed, or heavily corrected session. After a smooth one, say there's nothing durable to learn and stop.
 
 ## 1. Collect candidates
 
-Review the session for:
+Review the session (or just the part the user named) for:
 
 - Corrections the user had to make ("no, not like that").
-- Things I got wrong and then fixed - wrong assumption, missed check, wasted detour.
-- Facts I had to discover that the next agent will also need.
+- Wrong assumptions, missed checks, wasted detours that were later fixed.
+- Facts that had to be discovered and the next agent will also need.
 - Workflows that worked well and should be repeated.
 
-Discard one-offs. A candidate needs to plausibly happen again.
+Keep a candidate only if it is likely to recur in this project; drop typos and one-time slips. If early context was compacted away, say so.
 
-## 2. Route each lesson to the strongest home
+## 2. Pick the strongest home whose cost fits
 
-Prefer the home that makes the mistake impossible over one that merely warns about it:
-
-1. **Type, test, or lint rule** - the mistake can't compile or pass CI.
-2. **Script or hook** - the check runs automatically.
-3. **Skill edit** - an existing skill in `.claude/skills/` gains a line or a step. Edit, don't append duplicates.
-4. **CLAUDE.md** - a short, project-wide fact or convention.
-5. **New skill** - only when a repeated workflow has no home and is non-trivial.
+- **Code defects** → a test, type, or lint rule that makes the mistake fail CI.
+- **Costly or repeated process mistakes** → a script or hook that checks automatically.
+- **Workflow gaps** → an edit to an existing skill in `.claude/skills/` (edit; don't append duplicates). A new skill only when a repeated, non-trivial workflow has no home.
+- **One-line conventions and facts** → the project CLAUDE.md.
 
 ## 3. Propose, then apply
 
-Show a table: lesson → home → exact edit (diff or new lines). Apply only what the user approves. Keep each edit minimal and in the target file's existing style. Never add a rule that contradicts an existing one without resolving the conflict.
+1. Show a table: lesson → home → exact edit (diff or new lines).
+2. Apply only what the user approves. If nothing is approved, stop.
+3. Touch only the project CLAUDE.md and `.claude/skills/` unless the user asks otherwise. Keep each edit minimal, in the target file's style, and never add a rule that contradicts an existing one without resolving it.
+4. For each test, hook, or lint rule added, show it catching the original mistake before calling it done.
