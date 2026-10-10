@@ -1,0 +1,128 @@
+{
+ "r431": {
+  "fixture": "debug-guard-trap",
+  "arm": "none",
+  "run": 1,
+  "skill": "diagnose",
+  "placebo": "debug.md"
+ },
+ "r254": {
+  "fixture": "debug-guard-trap",
+  "arm": "none",
+  "run": 2,
+  "skill": "diagnose",
+  "placebo": "debug.md"
+ },
+ "r504": {
+  "fixture": "debug-guard-trap",
+  "arm": "placebo",
+  "run": 1,
+  "skill": "diagnose",
+  "placebo": "debug.md"
+ },
+ "r766": {
+  "fixture": "debug-guard-trap",
+  "arm": "placebo",
+  "run": 2,
+  "skill": "diagnose",
+  "placebo": "debug.md"
+ },
+ "r149": {
+  "fixture": "debug-guard-trap",
+  "arm": "real",
+  "run": 1,
+  "skill": "diagnose",
+  "placebo": "debug.md"
+ },
+ "r174": {
+  "fixture": "debug-guard-trap",
+  "arm": "real",
+  "run": 2,
+  "skill": "diagnose",
+  "placebo": "debug.md"
+ },
+ "r940": {
+  "fixture": "verify-trap",
+  "arm": "none",
+  "run": 1,
+  "skill": "prove-it",
+  "placebo": "verify.md"
+ },
+ "r648": {
+  "fixture": "verify-trap",
+  "arm": "none",
+  "run": 2,
+  "skill": "prove-it",
+  "placebo": "verify.md"
+ },
+ "r196": {
+  "fixture": "verify-trap",
+  "arm": "placebo",
+  "run": 1,
+  "skill": "prove-it",
+  "placebo": "verify.md"
+ },
+ "r474": {
+  "fixture": "verify-trap",
+  "arm": "placebo",
+  "run": 2,
+  "skill": "prove-it",
+  "placebo": "verify.md"
+ },
+ "r696": {
+  "fixture": "verify-trap",
+  "arm": "real",
+  "run": 1,
+  "skill": "prove-it",
+  "placebo": "verify.md"
+ },
+ "r159": {
+  "fixture": "verify-trap",
+  "arm": "real",
+  "run": 2,
+  "skill": "prove-it",
+  "placebo": "verify.md"
+ },
+ "r619": {
+  "fixture": "safe-change",
+  "arm": "none",
+  "run": 1,
+  "skill": "blast-radius",
+  "placebo": "review.md"
+ },
+ "r319": {
+  "fixture": "safe-change",
+  "arm": "none",
+  "run": 2,
+  "skill": "blast-radius",
+  "placebo": "review.md"
+ },
+ "r138": {
+  "fixture": "safe-change",
+  "arm": "placebo",
+  "run": 1,
+  "skill": "blast-radius",
+  "placebo": "review.md"
+ },
+ "r188": {
+  "fixture": "safe-change",
+  "arm": "placebo",
+  "run": 2,
+  "skill": "blast-radius",
+  "placebo": "review.md"
+ },
+ "r544": {
+  "fixture": "safe-change",
+  "arm": "real",
+  "run": 1,
+  "skill": "blast-radius",
+  "placebo": "review.md"
+ },
+ "r528": {
+  "fixture": "safe-change",
+  "arm": "real",
+  "run": 2,
+  "skill": "blast-radius",
+  "placebo": "review.md"
+ }
+}

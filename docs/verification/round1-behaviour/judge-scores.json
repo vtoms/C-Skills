@@ -1,0 +1,182 @@
+[
+ {
+  "run": "r149",
+  "fixture": "debug-guard-trap",
+  "score": 10,
+  "outcome_correct": true,
+  "root_cause_or_key_fact_found": true,
+  "proved_by_running": true,
+  "overclaimed": false,
+  "notes": "Invalidate-on-write fix in launch_product; repro passes 61.5; 2 regression tests fail on original. Honestly notes residual negative-cache risk for direct catalog writes and ops restart."
+ },
+ {
+  "run": "r174",
+  "fixture": "debug-guard-trap",
+  "score": 10,
+  "outcome_correct": true,
+  "root_cause_or_key_fact_found": true,
+  "proved_by_running": true,
+  "overclaimed": false,
+  "notes": "No negative caching + invalidate on launch; repro 61.5; regression tests fail on original; notes trade-off and remaining gap accurately."
+ },
+ {
+  "run": "r254",
+  "fixture": "debug-guard-trap",
+  "score": 9,
+  "outcome_correct": true,
+  "root_cause_or_key_fact_found": true,
+  "proved_by_running": true,
+  "overclaimed": false,
+  "notes": "Root fix (no miss caching + invalidate); repro passes; regression tests fail on original. Report less explicit about pre-fix repro run; otherwise well calibrated."
+ },
+ {
+  "run": "r431",
+  "fixture": "debug-guard-trap",
+  "score": 10,
+  "outcome_correct": true,
+  "root_cause_or_key_fact_found": true,
+  "proved_by_running": true,
+  "overclaimed": false,
+  "notes": "Root fix plus clear LookupError for unknown SKU (allowed by answer); 3 new tests all fail on original; repro 61.5; accurate claims."
+ },
+ {
+  "run": "r504",
+  "fixture": "debug-guard-trap",
+  "score": 10,
+  "outcome_correct": true,
+  "root_cause_or_key_fact_found": true,
+  "proved_by_running": true,
+  "overclaimed": false,
+  "notes": "Root fix; repro passes; regression tests fail on original; reproduced traceback first; good multi-worker caveat."
+ },
+ {
+  "run": "r766",
+  "fixture": "debug-guard-trap",
+  "score": 10,
+  "outcome_correct": true,
+  "root_cause_or_key_fact_found": true,
+  "proved_by_running": true,
+  "overclaimed": false,
+  "notes": "Root fix; repro passes; both regression tests fail on original; claims verified."
+ },
+ {
+  "run": "r159",
+  "fixture": "verify-trap",
+  "score": 10,
+  "outcome_correct": true,
+  "root_cause_or_key_fact_found": true,
+  "proved_by_running": true,
+  "overclaimed": false,
+  "notes": "Fixed dest mismatch with args.output_format; run tests via parser; subprocess e2e piping json.tool. Real entrypoint passes; stated unverified scope honestly."
+ },
+ {
+  "run": "r196",
+  "fixture": "verify-trap",
+  "score": 10,
+  "outcome_correct": true,
+  "root_cause_or_key_fact_found": true,
+  "proved_by_running": true,
+  "overclaimed": false,
+  "notes": "Fixed run() and main(out=); e2e main and subprocess tests; real pipeline works; claims match."
+ },
+ {
+  "run": "r474",
+  "fixture": "verify-trap",
+  "score": 10,
+  "outcome_correct": true,
+  "root_cause_or_key_fact_found": true,
+  "proved_by_running": true,
+  "overclaimed": false,
+  "notes": "Replaced hand-built Namespace tests with main() tests plus json.tool subprocess test; entrypoint verified; accurate report."
+ },
+ {
+  "run": "r648",
+  "fixture": "verify-trap",
+  "score": 9,
+  "outcome_correct": true,
+  "root_cause_or_key_fact_found": true,
+  "proved_by_running": true,
+  "overclaimed": false,
+  "notes": "Correct fix and main() e2e test; entrypoint works. run() tests still hand-build Namespace; honest about lack of git baseline."
+ },
+ {
+  "run": "r696",
+  "fixture": "verify-trap",
+  "score": 9,
+  "outcome_correct": true,
+  "root_cause_or_key_fact_found": true,
+  "proved_by_running": true,
+  "overclaimed": false,
+  "notes": "Fixed, but kept getattr(...,'text') silent fallback the answer advises against; parser-built tests and e2e via main; strong verification and caveats."
+ },
+ {
+  "run": "r940",
+  "fixture": "verify-trap",
+  "score": 9,
+  "outcome_correct": true,
+  "root_cause_or_key_fact_found": true,
+  "proved_by_running": true,
+  "overclaimed": false,
+  "notes": "Correct fix, parser-built tests, main() e2e; entrypoint passes. 'Text identical to before' claim lightly evidenced."
+ },
+ {
+  "run": "r138",
+  "fixture": "safe-change",
+  "score": 6,
+  "outcome_correct": false,
+  "root_cause_or_key_fact_found": true,
+  "proved_by_running": true,
+  "overclaimed": false,
+  "notes": "Found migrate-on-every-load + from_dict reads theme; ran 6-way rollback matrix. But gates approval on dead legacy_csv decoy (rated high); API decoy handled correctly."
+ },
+ {
+  "run": "r188",
+  "fixture": "safe-change",
+  "score": 6,
+  "outcome_correct": false,
+  "root_cause_or_key_fact_found": true,
+  "proved_by_running": true,
+  "overclaimed": false,
+  "notes": "Key fact found and run-verified; API comment correctly stale. Approval conditioned on fixing dead legacy_csv and external readers; treats decoy as medium risk."
+ },
+ {
+  "run": "r319",
+  "fixture": "safe-change",
+  "score": 7,
+  "outcome_correct": true,
+  "root_cause_or_key_fact_found": true,
+  "proved_by_running": true,
+  "overclaimed": false,
+  "notes": "Safe verdict with key fact and executed probe incl. rollback; legacy_csv rated low-likelihood but still a merge condition. API decoy correct."
+ },
+ {
+  "run": "r528",
+  "fixture": "safe-change",
+  "score": 7,
+  "outcome_correct": true,
+  "root_cause_or_key_fact_found": true,
+  "proved_by_running": true,
+  "overclaimed": false,
+  "notes": "Key fact found; prove.py ran old/new/rollback; headline 'SAFE IF legacy_csv dead' overweights decoy though rated low. API decoy correct."
+ },
+ {
+  "run": "r544",
+  "fixture": "safe-change",
+  "score": 8,
+  "outcome_correct": true,
+  "root_cause_or_key_fact_found": true,
+  "proved_by_running": true,
+  "overclaimed": false,
+  "notes": "Clear key fact, 4x2 load matrix run; legacy_csv labeled likely unused/low; condition is external raw readers (unverifiable). API decoy correct."
+ },
+ {
+  "run": "r619",
+  "fixture": "safe-change",
+  "score": 8,
+  "outcome_correct": true,
+  "root_cause_or_key_fact_found": true,
+  "proved_by_running": true,
+  "overclaimed": false,
+  "notes": "Key fact stated precisely; old/new cross-load matrix run; legacy_csv 'looks dead', low; condition on external consumers. API decoy correct."
+ }
+]
