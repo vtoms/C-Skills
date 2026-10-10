@@ -1,0 +1,178 @@
+[
+ {
+  "id": "v3-01",
+  "choice": "grill"
+ },
+ {
+  "id": "v3-02",
+  "choice": "grill"
+ },
+ {
+  "id": "v3-03",
+  "choice": "grill"
+ },
+ {
+  "id": "v3-04",
+  "choice": "grill"
+ },
+ {
+  "id": "v3-05",
+  "choice": "grill"
+ },
+ {
+  "id": "v3-06",
+  "choice": "diagnose"
+ },
+ {
+  "id": "v3-07",
+  "choice": "diagnose"
+ },
+ {
+  "id": "v3-08",
+  "choice": "diagnose"
+ },
+ {
+  "id": "v3-09",
+  "choice": "diagnose"
+ },
+ {
+  "id": "v3-10",
+  "choice": "diagnose"
+ },
+ {
+  "id": "v3-11",
+  "choice": "prove-it"
+ },
+ {
+  "id": "v3-12",
+  "choice": "prove-it"
+ },
+ {
+  "id": "v3-13",
+  "choice": "prove-it"
+ },
+ {
+  "id": "v3-14",
+  "choice": "prove-it"
+ },
+ {
+  "id": "v3-15",
+  "choice": "prove-it"
+ },
+ {
+  "id": "v3-16",
+  "choice": "blast-radius"
+ },
+ {
+  "id": "v3-17",
+  "choice": "blast-radius"
+ },
+ {
+  "id": "v3-18",
+  "choice": "blast-radius"
+ },
+ {
+  "id": "v3-19",
+  "choice": "blast-radius"
+ },
+ {
+  "id": "v3-20",
+  "choice": "blast-radius"
+ },
+ {
+  "id": "v3-21",
+  "choice": "tdd"
+ },
+ {
+  "id": "v3-22",
+  "choice": "tdd"
+ },
+ {
+  "id": "v3-23",
+  "choice": "tdd"
+ },
+ {
+  "id": "v3-24",
+  "choice": "tdd"
+ },
+ {
+  "id": "v3-25",
+  "choice": "tdd"
+ },
+ {
+  "id": "v3-26",
+  "choice": "review-feedback"
+ },
+ {
+  "id": "v3-27",
+  "choice": "review-feedback"
+ },
+ {
+  "id": "v3-28",
+  "choice": "review-feedback"
+ },
+ {
+  "id": "v3-29",
+  "choice": "review-feedback"
+ },
+ {
+  "id": "v3-30",
+  "choice": "review-feedback"
+ },
+ {
+  "id": "v3-31",
+  "choice": "code-review"
+ },
+ {
+  "id": "v3-32",
+  "choice": "none"
+ },
+ {
+  "id": "v3-33",
+  "choice": "none"
+ },
+ {
+  "id": "v3-34",
+  "choice": "none"
+ },
+ {
+  "id": "v3-35",
+  "choice": "none"
+ },
+ {
+  "id": "v3-36",
+  "choice": "simplify"
+ },
+ {
+  "id": "v3-37",
+  "choice": "security-review"
+ },
+ {
+  "id": "v3-38",
+  "choice": "none"
+ },
+ {
+  "id": "v3-39",
+  "choice": "review-feedback"
+ },
+ {
+  "id": "v3-40",
+  "choice": "review-feedback"
+ },
+ {
+  "id": "v3-41",
+  "choice": "diagnose"
+ },
+ {
+  "id": "v3-42",
+  "choice": "none"
+ },
+ {
+  "id": "v3-43",
+  "choice": "tdd"
+ },
+ {
+  "id": "v3-44",
+  "choice": "blast-radius"
+ }
+]

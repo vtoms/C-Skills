@@ -1,0 +1,162 @@
+[
+ {
+  "id": "v2-01",
+  "choice": "grill"
+ },
+ {
+  "id": "v2-02",
+  "choice": "grill"
+ },
+ {
+  "id": "v2-03",
+  "choice": "grill"
+ },
+ {
+  "id": "v2-04",
+  "choice": "grill"
+ },
+ {
+  "id": "v2-05",
+  "choice": "grill"
+ },
+ {
+  "id": "v2-06",
+  "choice": "diagnose"
+ },
+ {
+  "id": "v2-07",
+  "choice": "diagnose"
+ },
+ {
+  "id": "v2-08",
+  "choice": "diagnose"
+ },
+ {
+  "id": "v2-09",
+  "choice": "diagnose"
+ },
+ {
+  "id": "v2-10",
+  "choice": "diagnose"
+ },
+ {
+  "id": "v2-11",
+  "choice": "prove-it"
+ },
+ {
+  "id": "v2-12",
+  "choice": "prove-it"
+ },
+ {
+  "id": "v2-13",
+  "choice": "prove-it"
+ },
+ {
+  "id": "v2-14",
+  "choice": "prove-it"
+ },
+ {
+  "id": "v2-15",
+  "choice": "prove-it"
+ },
+ {
+  "id": "v2-16",
+  "choice": "blast-radius"
+ },
+ {
+  "id": "v2-17",
+  "choice": "blast-radius"
+ },
+ {
+  "id": "v2-18",
+  "choice": "blast-radius"
+ },
+ {
+  "id": "v2-19",
+  "choice": "blast-radius"
+ },
+ {
+  "id": "v2-20",
+  "choice": "blast-radius"
+ },
+ {
+  "id": "v2-21",
+  "choice": "tdd"
+ },
+ {
+  "id": "v2-22",
+  "choice": "tdd"
+ },
+ {
+  "id": "v2-23",
+  "choice": "tdd"
+ },
+ {
+  "id": "v2-24",
+  "choice": "tdd"
+ },
+ {
+  "id": "v2-25",
+  "choice": "tdd"
+ },
+ {
+  "id": "v2-26",
+  "choice": "none"
+ },
+ {
+  "id": "v2-27",
+  "choice": "none"
+ },
+ {
+  "id": "v2-28",
+  "choice": "none"
+ },
+ {
+  "id": "v2-29",
+  "choice": "none"
+ },
+ {
+  "id": "v2-30",
+  "choice": "none"
+ },
+ {
+  "id": "v2-31",
+  "choice": "none"
+ },
+ {
+  "id": "v2-32",
+  "choice": "code-review"
+ },
+ {
+  "id": "v2-33",
+  "choice": "simplify"
+ },
+ {
+  "id": "v2-34",
+  "choice": "security-review"
+ },
+ {
+  "id": "v2-35",
+  "choice": "none"
+ },
+ {
+  "id": "v2-36",
+  "choice": "diagnose"
+ },
+ {
+  "id": "v2-37",
+  "choice": "blast-radius"
+ },
+ {
+  "id": "v2-38",
+  "choice": "grill"
+ },
+ {
+  "id": "v2-39",
+  "choice": "prove-it"
+ },
+ {
+  "id": "v2-40",
+  "choice": "diagnose"
+ }
+]

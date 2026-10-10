@@ -2,7 +2,7 @@
 
 Agent Skills for Claude Code. They're distilled from the two most-discussed skill packs of 2026, Matt Pocock's [AI Hero skills](https://www.aihero.dev/skills) and Lauren Tan's [pstack](https://github.com/backnotprop/pstack), and rewritten to fix what their users complained about. See [NOTICE.md](NOTICE.md) for attribution.
 
-**Status: v0.5.2, verified.** Both Perplexity rounds are folded in. The skills then went through three rounds of independent adversarial checks: a red-team pass, a regression pass, and a final pass on fresh held-out prompts. Results are in [docs/verification/](docs/verification/), summarised below.
+**Status: v0.6.2, verified.** A 9-agent grid search of the most-starred and trending skill repos drove edits to every skill and added `review-feedback` and `spike`. Each change then passed independent regression checks, and every fix those checks prompted was itself re-checked. Results are in [docs/verification/](docs/verification/), with the latest in [round4-final](docs/verification/round4-final/RESULTS.md).
 
 ## Skills
 
@@ -20,6 +20,8 @@ They live in `.claude/skills/`, so Claude Code loads them automatically in this 
 | `handoff` | manual | Writes a handoff doc so a fresh agent can continue cold | Write it early, commit it, include a paste-able resume prompt |
 | `plain` | manual | Re-explains the last message in plain language | Combines `wait-what` and `/bro`. For a permanent preference, use a Claude Code output style instead |
 | `unslop` | manual | Removes AI-writing tells from prose while keeping meaning, tone, and code untouched | pstack's best-received standalone skill, rewritten shorter; makes no changes if the text is already clean |
+| `review-feedback` | auto | Acts on review comments already given: checks each against the code, fixes the valid ones with a test that's seen failing first, pushes back on wrong ones with evidence | Superpowers and compound-engineering both ship one; about 56% of AI review comments get rejected. Never commits, pushes or posts unasked |
+| `spike` | manual | Answers one design question with time-boxed throwaway code in a scratch location, then reports answer, evidence and a delete/keep call | Pocock's `prototype` (~900k installs), renamed to avoid the hidden built-in `/prototype` |
 | `reflect` | manual | Turns session lessons into the strongest guard (type, test, lint, then a skill or CLAUDE.md edit) | Proposes changes before applying them; leaves out pstack's transcript-mining across workspaces |
 
 **Left out on purpose:** autopilot, shipping and auto-merge playbooks, `sudo`/`curl | sh` installers, `@latest` dependencies, and multi-provider model routing. Those were the security and cost complaints raised about pstack. Skills may *recommend* a merge or push; enforce the real limits with branch protection and scoped tokens, not with instructions in a SKILL.md.
@@ -27,8 +29,8 @@ They live in `.claude/skills/`, so Claude Code loads them automatically in this 
 ## Verification summary
 
 - **Static checks:** `tests/validate_skills.py` parses real YAML and rejects unknown frontmatter keys, non-third-person descriptions, missing trigger clauses, over-long descriptions, reserved names and unsafe commands. It caught three invalid-YAML regressions during development.
-- **Routing (blind, descriptions only):** 40/40 on a fresh held-out set, 48/48 on the original set.
-- **Live activation (real headless sessions):** 67/80 on fresh prompts, with no false loads on any of the 20 should-not-fire prompts. `blast-radius` and `tdd` loaded every time. `diagnose` has the main gap: it is under-triggered on question-phrased bug reports, so invoke `/diagnose` when it matters.
+- **Routing (blind, descriptions only):** 40/40 and 44/44 on two held-out sets.
+- **Live activation (real headless sessions, v0.6.x):** 195/208 on 104 held-out prompts × 2 runs, with no false loads (56/56 should-not-fire correct). `diagnose` went from 8/14 to 38/38. The remaining misses are mostly test-setup artifacts or critique prompts answered directly; see [round4-final](docs/verification/round4-final/RESULTS.md).
 - **Behaviour (blind three-arm test: none / placebo / real):** no measurable outcome gain on a strong model. All 18 runs succeeded in every arm. The value of these skills is consistency, safety rails, and a fixed report shape, not extra intelligence. See [round1-behaviour](docs/verification/round1-behaviour/RESULTS.md).
 - **Safety fixes found by red-teaming:**
   - `handoff` used to commit and push all work without asking.
@@ -37,6 +39,10 @@ They live in `.claude/skills/`, so Claude Code loads them automatically in this 
   - `diagnose`'s debug-log check matched its own text.
 
   All fixed and re-verified.
+
+## Also works in
+
+The `SKILL.md` format is the open Agent Skills standard. Google Antigravity reads the same files from `.agent/skills/` (workspace) or `~/.gemini/antigravity/skills/`.
 
 ## Tests
 
