@@ -40,6 +40,15 @@ They live in `.claude/skills/`, so Claude Code loads them automatically in this 
 
   All fixed and re-verified.
 
+## Install notes
+
+These pitfalls come from Claude Code's own issue tracker (details in `docs/research/feedback-mining/mechanics.md`):
+
+- **Name collisions.** `tdd`, `diagnose`, `handoff`, `spec`, `unslop` and `interrogate` share names with popular packs. A personal copy in `~/.claude/skills/` overrides the project copy, and the validator warns when one exists.
+- **Manual skills** (`/interrogate`, `/spec`, `/spike`, `/handoff`, `/plain`, `/unslop`, `/reflect`) must be typed at the start of a message. Typed mid-message, or second in a stack of skills, they can be ignored.
+- **Many installed skills.** When the total skill listing exceeds Claude Code's budget, the least-used descriptions are dropped and only the names stay. Keep the installed set lean.
+- **Git worktrees.** A session started in a worktree may load the main checkout's skills (open issues #88931 and #100497). When testing skill edits, run from a separate clone; `tests/live/activation.py` is meant to be run that way.
+
 ## Also works in
 
 The `SKILL.md` format is the open Agent Skills standard. Google Antigravity reads the same files from `.agent/skills/` (workspace) or `~/.gemini/antigravity/skills/`.

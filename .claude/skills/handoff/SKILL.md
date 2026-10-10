@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Writes a one-page handoff (goal, state with commit SHAs, decisions, dead ends, next steps, resume prompt) to docs/handoffs/<date>-<topic>.md so a fresh session can continue cold. Commits only that file and asks before pushing; prints the resume prompt in chat. Run before ending a session with unfinished work.
+description: Writes a one-page handoff (goal, state with commit SHAs, decisions, dead ends, next steps, resume prompt) to docs/handoffs/DATE-TOPIC.md so a fresh session can continue cold. Commits only that file and asks before pushing; prints the resume prompt in chat. Run before ending a session with unfinished work.
 argument-hint: "[focus for the next session]"
 disable-model-invocation: true
 ---
@@ -20,7 +20,7 @@ Write a document that lets a fresh agent continue without reading this conversat
 7. **Suggested skills** - by `/name`, only ones in `.claude/skills/` or built-ins; omit the section if none apply.
 8. **Resume prompt** - 3–5 lines (longer if the file isn't pushed - see Saving) to paste into a new session: repo, branch, this file's path, the first next step, and an instruction to check the State against `git log`/`git status` (and the status command) and report any mismatch before acting.
 
-Reference existing artifacts (specs, issues, commits, files) by path or URL; don't copy them. Redact secrets, tokens, and personal data. Keep it under a page.
+Reference existing artifacts (specs, issues, commits, files, and this session's transcript file if the next session runs on this machine) by path or URL; don't copy them. Redact secrets, tokens, and personal data. Keep it under a page.
 
 ## Saving it
 

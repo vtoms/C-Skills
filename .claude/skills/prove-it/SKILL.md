@@ -34,7 +34,7 @@ Push each claim as high on this list as is cheap, and say where it stopped:
 - **UI changes:** if a browser tool is available (the `run` skill, or Playwright if installed - ask before installing it), drive the page, look at the screenshot, and check the console for errors. Otherwise list the UI check under "Not verified".
 - **Use the repo's own checks first** - its verify script or skill, the built-in `run` skill, smoke test, lint, typecheck, and the tests for the touched package. If I've done the same manual check twice, propose scripting it, but don't create a new verification skill when one of these fits.
 - **No repro and no tests?** Write a throwaway script in a scratch directory that calls the real code and would fail on the old behaviour. Run it, keep its output, delete it afterwards.
-- **When a check fails, suspect the check before the system** - confirm I'm observing the right thing. But never make a red check green by weakening, skipping, or deleting it. If the failure is real and its cause isn't obvious, hand off to `diagnose`.
+- **Suspect the check before the system** - when it fails, confirm I'm observing the right thing; when it passes or finds nothing, confirm it could have failed (red on the old code or a known-bad input, and any edit or probe I made actually landed). But never make a red check green by weakening, skipping, or deleting it. If the failure is real and its cause isn't obvious, hand off to `diagnose`.
 - **Stay safe.** Read-only checks (GET requests, status, logs) may hit any environment. Run anything that writes locally or on staging; ask before writing to production or shared data, or anything that sends, charges, migrates, deploys, or pushes.
 
 ## Measured numbers
@@ -47,7 +47,7 @@ One line per thing the user asked for (re-read the request), then the overall le
 
 ```
 Verified: <claim> — <command or method> — <result> — level <n>
-Failed: <claim> — <command> — <actual output>
+Failed: <claim> — <command> — <actual output, secrets redacted>
 Overall: level <n>
 Not verified: <what I could not check> — <verbatim blocker>
 ```

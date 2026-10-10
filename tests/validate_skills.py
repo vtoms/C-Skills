@@ -29,7 +29,19 @@ PORTABLE_CAP = 1024     # Agent Skills spec / API limit
 TARGET_CAP = 500        # keep listing-budget friendly
 IMPERATIVES = {"interview", "work", "turn", "compress", "re-pitch", "verify", "find", "run", "use",
                "write", "review", "build", "create", "make", "before", "after"}
-RESERVED = {"code-review", "simplify", "init", "review", "security-review", "loop", "run", "prototype"}
+# Built-in / bundled Claude Code skills and commands a project skill must not shadow.
+RESERVED = {"code-review", "simplify", "init", "review", "security-review", "loop", "run", "prototype",
+            "verify", "run-skill-generator", "schedule", "fewer-permission-prompts", "update-config",
+            "keybindings-help", "claude-api", "workflow-authoring", "plugin-authoring", "dataviz",
+            "artifact-design", "artifact-diagramming", "artifact-capabilities", "claude-in-chrome", "synced"}
+# claude.ai uploads / the Skills API reject XML-like tags in descriptions (claude-code#80469, #26254).
+TAG_RE = re.compile(r"<[A-Za-z/][^>]*>")
+# Claude Code substitutes $0..$19 in a skill body when it is invoked with arguments
+# (claude-code#79859, #91957, #94065), silently corrupting text such as "$1 per run".
+ARG_TOKEN_RE = re.compile(r"(?<![\\$\w])\$(1?[0-9])\b")
+# YAML 1.1 reads yes/no/on/off as booleans; only literal true/false is portable.
+RAW_BOOL_RE = re.compile(r"^(disable-model-invocation|user-invocable):\s*(\S+)\s*$", re.M)
+PERSONAL = pathlib.Path.home() / ".claude" / "skills"
 
 
 def parse_frontmatter(text):
@@ -51,14 +63,16 @@ def parse_frontmatter(text):
 
 
 def main():
-    errors = []
+    errors, warnings = [], []
     dirs = sorted(p for p in ROOT.iterdir() if p.is_dir())
     for d in dirs:
         f = d / "SKILL.md"
-        if not f.exists():
-            errors.append(f"{d.name}: no SKILL.md")
+        # Exact-case check: Windows/macOS find "skill.md" via SKILL.md, Linux won't.
+        if "SKILL.md" not in {c.name for c in d.iterdir()}:
+            errors.append(f"{d.name}: no file named exactly SKILL.md")
             continue
-        fm, body = parse_frontmatter(f.read_text(encoding="utf-8"))
+        text = f.read_text(encoding="utf-8")
+        fm, body = parse_frontmatter(text)
         if fm is None:
             errors.append(f"{d.name}: {body}")
             continue
@@ -72,9 +86,16 @@ def main():
         for key in fm:
             if key not in KNOWN_FIELDS:
                 errors.append(f"{d.name}: unknown frontmatter field '{key}' (silently ignored)")
-        for key in BOOL_FIELDS & fm.keys():
-            if fm[key].lower() not in BOOL_VALUES:
-                errors.append(f"{d.name}: {key} must be true/false, got '{fm[key]}'")
+        for key, raw in RAW_BOOL_RE.findall(text.split("\n---", 1)[0]):
+            if raw not in BOOL_VALUES:
+                errors.append(f"{d.name}: {key} must be literally true or false, got '{raw}'")
+        if TAG_RE.search(desc):
+            errors.append(f"{d.name}: description contains an XML-like tag {TAG_RE.search(desc).group(0)!r} (rejected by claude.ai/API uploads)")
+        m = ARG_TOKEN_RE.search(body)
+        if m:
+            errors.append(f"{d.name}: body contains '${m.group(1)}', which Claude Code replaces with an argument; escape it as '\\${m.group(1)}'")
+        if (PERSONAL / name).is_dir():
+            warnings.append(f"{d.name}: a personal copy at {PERSONAL / name} overrides this project skill")
         if "claude" in name or "anthropic" in name:
             errors.append(f"{d.name}: name may not contain 'claude' or 'anthropic'")
         if not 40 <= len(desc) <= PORTABLE_CAP:
@@ -97,6 +118,8 @@ def main():
             errors.append(f"{d.name}: contains an unsafe command pattern: {UNSAFE_RE.search(body).group(0)!r}")
         if len(body.splitlines()) > 500:
             errors.append(f"{d.name}: body over 500 lines")
+    for w in warnings:
+        print("WARN", w)
     for e in errors:
         print("FAIL", e)
     print(f"{len(dirs)} skills checked, {len(errors)} problems")

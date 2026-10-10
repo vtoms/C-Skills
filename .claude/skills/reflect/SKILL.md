@@ -18,6 +18,7 @@ Review the session (or just the part the user named) for:
 - Corrections the user had to make ("no, not like that").
 - Wrong assumptions, missed checks, wasted detours that were later fixed.
 - Facts that had to be discovered and the next agent will also need.
+- Instructions (CLAUDE.md, rules, skills, docs) that misled the agent because they were stale or contradicted another file.
 - Workflows that worked well and should be repeated.
 
 For each candidate, quote the session moment that shows it; drop any you can't point to. Keep it only if it is likely to recur in this project and the code alone won't teach it: would the next agent, reading the final code, still make this mistake? Drop typos, one-time slips, and facts tied to a SHA or version that will drift. If early context was compacted away, say so.
@@ -31,7 +32,7 @@ For each candidate, quote the session moment that shows it; drop any you can't p
 - **Workflow gaps** → an edit to an existing skill in `.claude/skills/` (edit; don't append duplicates). A new skill only when a repeated, non-trivial workflow has no home.
 - **One-line conventions and facts** → CLAUDE.md only if it applies across the whole repo; a narrower one goes in a path-scoped rule file (e.g. `.claude/rules/<topic>.md` with `paths:` frontmatter, so it loads only for matching files) or the relevant skill. If CLAUDE.md is near 200 lines, pair the addition with a removal.
 
-A written rule that was still broken needs a check (test, lint, or hook), not another line.
+A written rule that was still broken needs a check (test, lint, or hook), not another line. For stale or contradicting text, fix or delete it in the file that is wrong; don't add a line on top.
 
 ## 3. Propose, then apply
 

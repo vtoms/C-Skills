@@ -38,4 +38,4 @@ Reading code to find where to reproduce is fine. Editing code or naming a cause 
 
 - The original red command is now green (report the evidence level, as in `prove-it`); the regression test fails on old code and passes on new.
 - `git grep -nE --untracked "\[DBG-[0-9a-fA-F]{4}\]" -- ':(top)' ':(top,exclude).claude'` returns nothing; throwaway harnesses removed.
-- The summary (and the commit message, if committing was asked for) states the confirmed mechanism in one sentence - why the code produced the symptom and why the change stops it. If you can't, the cause isn't confirmed.
+- The summary (and the commit message, if committing was asked for) states the confirmed mechanism in one sentence - why the code produced the symptom and why the change stops it. If you can't, the cause isn't confirmed. If the user's own failing records, logs, or payload are readable, check the mechanism explains them - a repro on inputs you built proves the path exists, not that it is the one the user hit.

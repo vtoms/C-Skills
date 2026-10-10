@@ -1,6 +1,6 @@
 ---
 name: spec
-description: Turns already-settled decisions (a grill's decisions file, an issue, or this conversation) into a one-page spec at docs/specs/<topic>.md with 2-6 independently shippable vertical slices, each with a done-when check. Writes only the spec file; creates no issues or code unless asked afterwards.
+description: Turns already-settled decisions (a grill's decisions file, an issue, or this conversation) into a one-page spec at docs/specs/TOPIC.md with 2-6 independently shippable vertical slices, each with a done-when check. Writes only the spec file; creates no issues or code unless asked afterwards.
 argument-hint: "[decisions file, issue, or topic]"
 disable-model-invocation: true
 ---
@@ -50,8 +50,8 @@ Order so S1 is the smallest slice that proves the riskiest assumption.
 
 ## After writing
 
-1. **Builder check.** Have a fresh subagent (or, without one, yourself) read the spec as a builder who can't ask the user anything and list only the places where it would have to guess and a wrong guess would change what gets built. Fold answers already in the conversation or code into the spec; settle minor ones yourself, marked "(my call)"; bring the rest to the user in one message. That is the only question round.
+1. **Builder check.** Have a fresh subagent (or, without one, yourself) read the spec as a builder who can't ask the user anything and list only the places where it would have to guess and a wrong guess would change what gets built, plus any decision or Outcome item that no slice delivers and Out of scope doesn't exclude. Fold answers already in the conversation or code into the spec; settle minor ones yourself, marked "(my call)"; bring the rest to the user in one message. That is the only question round.
 2. Show the slice list in chat.
 3. Say the spec file is uncommitted and offer to commit it. In an ephemeral environment, an uncommitted file is lost when the session ends.
-4. Create GitHub issues or tracker items only if the user asks - one per slice. Link to the spec only if it has been pushed (ask before pushing); otherwise inline the slice text.
+4. Create GitHub issues or tracker items only if the user asks - one per slice. Link to the spec only if it has been pushed (ask before pushing); otherwise inline the slice text and the decisions it depends on.
 5. Don't start implementing until the user picks a slice.

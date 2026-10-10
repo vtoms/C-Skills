@@ -30,7 +30,7 @@ Drop questions where every option leads to the same outcome. Collect low-stakes 
 
 ## Facts are mine, decisions are theirs
 
-Never ask what can be looked up - file layout, existing patterns, versions, what a function does. Read the code or send a subagent while asking the rest of the frontier.
+Never ask what can be looked up - file layout, existing patterns, versions, what a function does - or what the user or source issue already said. Finish any reading or subagent that could change a question before asking it; a subagent's report is not the user's answer.
 
 When the code settles a likely answer, don't ask: list it under "Assuming (from code):" with the file it rests on, for the user to correct.
 
@@ -42,20 +42,22 @@ When the code settles a likely answer, don't ask: list it under "Assuming (from 
 
 ## Asking
 
-Prefer the `AskUserQuestion` tool when available (up to 4 questions with options; put the recommendation first, labelled "(Recommended)"). Otherwise:
+Prefer the `AskUserQuestion` tool when available (up to 4 questions with options; put the recommendation first, labelled "(Recommended)"; put needed background inside the question, since the tool hides the chat). Otherwise, or if the user prefers plain text:
 
 ```
-**Q1 — <short title>**
-<question, with concrete options>
+**Q<n> — <short title>**
+<question>
+  a) <option>
+  b) <option>
 → Recommended: <answer> — <one-line why>
 ```
 
-Word each question so "yes" accepts the recommendation. Mark **⚠** questions that are hard to reverse (stored data, public interfaces, money, security); a blanket "ok" doesn't cover them - re-ask each unanswered ⚠ question on its own before moving on, and never record one as `default`. End the round with: "Reply 'ok' to take all unmarked recommendations, or answer by number."
+Number questions across the session, never restarting at Q1. Word each as a plain-language question so "yes" accepts the recommendation. Mark **⚠** questions that are hard to reverse (stored data, public interfaces, money, security); a blanket "ok" doesn't cover them - re-ask each unanswered ⚠ question on its own before moving on, and never record one as `default`. End the round with: "Reply 'ok' to take all unmarked recommendations, or answer by number."
 
 ## Stop
 
-Stop when no remaining question would change the outcome, or the user says "you decide" or "enough". List the defaults being taken; ⚠ questions still need an explicit answer, even after "you decide". **Do not implement until the user confirms the summary** - running out of questions is not permission to start.
+Stop when no remaining question would change the outcome, or the user says "you decide" or "enough". List the defaults being taken; ⚠ questions still need an explicit answer, even after "you decide". **Do not implement until the user asks for it** - running out of questions, or confirming the summary, is not permission to start.
 
 ## Record
 
-After the user confirms, write the decisions to the repo's existing decisions location if there is one, else `docs/decisions/<topic>.md` (or where the user prefers) - one line each: decision, choice, reason, and `chosen` (the user picked it) or `default` (via recommendation, "ok", or "you decide"). Propose a separate ADR (in the repo's ADR folder, if any) only for decisions that are hard to reverse, surprising, and a real trade-off. Never overwrite an existing file; append a dated section to it instead. Later work cites this file instead of re-asking. Say the file is uncommitted and offer to commit it (ask before pushing); if the work spans several PRs, suggest `/spec <path>` next. If the session is long, suggest continuing in a fresh session that starts from that file.
+After the user confirms, write the decisions to the repo's existing decisions location if there is one, else `docs/decisions/<topic>.md` (or where the user prefers) - one line each: decision, choice, reason, and `chosen` (the user picked it) or `default` (via recommendation, "ok", or "you decide"). Propose a separate ADR (architecture decision record; in the repo's ADR folder, if any; status Proposed until the work ships) only for decisions that are hard to reverse, surprising, and a real trade-off. Never overwrite an existing file; append a dated section to it instead. Later work cites this file instead of re-asking. Say the file is uncommitted and offer to commit it (ask before pushing); if the work spans several PRs, suggest `/spec <path>` next. If the session is long, suggest continuing in a fresh session that starts from that file.

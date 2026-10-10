@@ -20,12 +20,12 @@ argument-hint: "[diff, branch, PR, or described change]"
    - Serialized forms: JSON responses, DB columns, files on disk, cache keys, wire protocols, other languages reading the same bytes.
    - Dynamic access: reflection, string-built names, config, feature flags, env vars.
    - Timing: async ordering, teardown, retries, concurrency; for migrations, scripts, and jobs, what happens if it runs twice or crashes halfway.
-   - Deploy and rollback: old and new code running side by side during a rollout, and data the new code writes being read by old code after a rollback.
+   - Deploy and rollback: old and new code running side by side during a rollout, and data the new code writes being read by old code after a rollback; whether deploy and build scripts (even untracked) install every new dependency, env var, and asset.
    - Closed sets: a new enum value, status, or type tag - find every switch, map, and allowlist over its sibling values and check each handles it.
    - History: for any deleted or loosened check, `git log -S'<snippet>'` or `git blame <base> -- <file>` on the old lines; if they came from a fix, security, or revert commit, the change may reopen that bug.
    - Dependencies: the library's actual source at the pinned version.
    - Consumers outside this repo: public APIs, published packages, scripts, docs.
-5. **Rate each risk honestly** - realistic likelihood and real cost. Never invent a caller or an API. A search that finds nothing is valid evidence **for this repo only**; anything outside it stays UNVERIFIED.
+5. **Rate each risk honestly** - realistic likelihood and real cost. Never invent a caller or an API. A search that finds nothing is evidence only for the files it searched (default search tools skip gitignored and binary files, e.g. generated code and deploy scripts); anything outside this repo stays UNVERIFIED.
 6. **Prove the load-bearing fact.** Write a small script or test that exercises the real code in a scratch directory - only for trusted code (not an external fork), never against production data, networks, or publish steps - run it, and paste the output. State the proof's level: 1 asserted, 2 cited `file:line`, 3 reasoned step by step, 4 executed, 5 observed live (the same ladder as `prove-it`).
 
 ## Report
