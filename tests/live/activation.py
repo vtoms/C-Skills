@@ -17,6 +17,7 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parents[2]
 # Read-only probing: the session may look around but not edit or run commands.
 TOOLS = "Skill,Read,Grep,Glob"
+OURS = {d.name for d in (REPO / ".claude" / "skills").iterdir() if d.is_dir()}
 
 
 def skills_invoked(prompt, timeout):
@@ -52,7 +53,9 @@ def main():
                 invoked = skills_invoked(case["prompt"], args.timeout)
             except subprocess.TimeoutExpired:
                 invoked = ["<timeout>"]
-            hit = case["expected"] in invoked if case["expected"] != "none" else not [s for s in invoked if s]
+            # "none" means none of this repo's skills should load (built-ins are fine).
+            ours = [s for s in invoked if s in OURS]
+            hit = case["expected"] in invoked if case["expected"] != "none" else not ours
             results.append({"id": case["id"], "run": run, "expected": case["expected"],
                             "invoked": invoked, "correct": hit})
             print(f"{case['id']} run{run}: expected={case['expected']} invoked={invoked} {'OK' if hit else 'MISS'}",
