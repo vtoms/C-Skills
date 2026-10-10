@@ -20,6 +20,7 @@ Otherwise review the working tree, including uncommitted changes, against the me
 
 ```bash
 base=$(git merge-base HEAD origin/HEAD 2>/dev/null || git merge-base HEAD origin/main 2>/dev/null || git merge-base HEAD origin/master 2>/dev/null)
+[ -n "$base" ] || { echo "no merge base found"; exit 1; }
 git diff "$base"                      # committed + staged + unstaged
 git ls-files --others --exclude-standard   # new untracked files: review them too
 ```

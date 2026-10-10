@@ -31,5 +31,5 @@ Reading code to find where to reproduce is fine. Editing code or naming a cause 
 ## Done means
 
 - The original red command is now green (report the evidence level, as in `prove-it`); the regression test fails on old code and passes on new.
-- `git grep -nE --untracked "\[DBG-[0-9a-f]{4}\]" -- ':(top)' ':(top,exclude).claude'` returns nothing; throwaway harnesses removed.
+- `git grep -nE --untracked "\[DBG-[0-9a-fA-F]{4}\]" -- ':(top)' ':(top,exclude).claude'` returns nothing; throwaway harnesses removed.
 - The summary (and the commit message, if committing was asked for) names the cause that was confirmed.

@@ -11,7 +11,7 @@ Synthesis, not another interview.
 
 ## Source
 
-Use the argument if given, else this conversation, else the newest file in `docs/decisions/`. If neither contains decisions, say so and ask for them (or suggest running /grill first). If one open decision blocks every slice, ask that single question and stop; other open decisions go under **Open questions**. Don't invent requirements to fill gaps.
+Use the argument if given, else this conversation, else the newest file in `docs/decisions/`. If none of these contains decisions, say so and ask for them (or suggest running /grill first). If one open decision blocks every slice, ask that single question and stop; other open decisions go under **Open questions**. Don't invent requirements to fill gaps.
 
 ## Size it
 
