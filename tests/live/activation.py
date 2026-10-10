@@ -9,6 +9,7 @@ Skill tool. Usage:
 cases.json: [{"id": "...", "prompt": "...", "expected": "<skill>|none"}]
 """
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import json
 import pathlib
 import subprocess
@@ -47,22 +48,25 @@ def main():
     ap.add_argument("--timeout", type=int, default=240)
     ap.add_argument("--out", default="-")
     ap.add_argument("--start", type=int, default=0, help="skip the first N cases (resume)")
+    ap.add_argument("--jobs", type=int, default=8, help="sessions to run in parallel")
     args = ap.parse_args()
     cases = json.loads(pathlib.Path(args.cases).read_text())
-    results = []
-    for case in cases[args.start:]:
-        for run in range(args.runs):
-            try:
-                invoked = skills_invoked(case["prompt"], args.timeout)
-            except subprocess.TimeoutExpired:
-                invoked = ["<timeout>"]
-            # "none" means none of this repo's skills should load (built-ins are fine).
-            ours = [s for s in invoked if s in OURS]
-            hit = case["expected"] in invoked if case["expected"] != "none" else not ours
-            results.append({"id": case["id"], "run": run, "expected": case["expected"],
-                            "invoked": invoked, "correct": hit})
-            print(f"{case['id']} run{run}: expected={case['expected']} invoked={invoked} {'OK' if hit else 'MISS'}",
-                  file=sys.stderr, flush=True)
+    def run_one(job):
+        case, run = job
+        try:
+            invoked = skills_invoked(case["prompt"], args.timeout)
+        except subprocess.TimeoutExpired:
+            invoked = ["<timeout>"]
+        # "none" means none of this repo's skills should load (built-ins are fine).
+        ours = [s for s in invoked if s in OURS]
+        hit = case["expected"] in invoked if case["expected"] != "none" else not ours
+        print(f"{case['id']} run{run}: expected={case['expected']} invoked={invoked} {'OK' if hit else 'MISS'}",
+              file=sys.stderr, flush=True)
+        return {"id": case["id"], "run": run, "expected": case["expected"], "invoked": invoked, "correct": hit}
+
+    jobs = [(case, run) for case in cases[args.start:] for run in range(args.runs)]
+    with ThreadPoolExecutor(max_workers=args.jobs) as pool:
+        results = list(pool.map(run_one, jobs))
     text = json.dumps(results, indent=2)
     if args.out == "-":
         print(text)
