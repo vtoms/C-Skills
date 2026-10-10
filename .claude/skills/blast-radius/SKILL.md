@@ -19,7 +19,10 @@ argument-hint: "[diff, branch, PR, or described change]"
 4. **Look where grep stops:**
    - Serialized forms: JSON responses, DB columns, files on disk, cache keys, wire protocols, other languages reading the same bytes.
    - Dynamic access: reflection, string-built names, config, feature flags, env vars.
-   - Timing: async ordering, teardown, retries, concurrency.
+   - Timing: async ordering, teardown, retries, concurrency; for migrations, scripts, and jobs, what happens if it runs twice or crashes halfway.
+   - Deploy and rollback: old and new code running side by side during a rollout, and data the new code writes being read by old code after a rollback.
+   - Closed sets: a new enum value, status, or type tag - find every switch, map, and allowlist over its sibling values and check each handles it.
+   - History: for any deleted or loosened check, `git log -S'<snippet>'` or `git blame` the old lines; if they came from a fix, security, or revert commit, the change may reopen that bug.
    - Dependencies: the library's actual source at the pinned version.
    - Consumers outside this repo: public APIs, published packages, scripts, docs.
 5. **Rate each risk honestly** - realistic likelihood and real cost. Never invent a caller or an API. A search that finds nothing is valid evidence **for this repo only**; anything outside it stays UNVERIFIED.

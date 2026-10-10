@@ -14,6 +14,8 @@ Estimate how many open decisions change the outcome and say so in one line ("~6 
 
 - **≤2 decisions, and the skill was triggered automatically:** ask the one question that matters, or state the assumptions and wait for a go-ahead. **If the user explicitly asked to be grilled, challenged, or for gaps or risks, grill anyway (and do Holes first).**
 - **Otherwise:** rounds of **at most 4 questions**, highest impact first.
+- **Too big:** more than ~15 real decisions, or several independently shippable pieces: say so, propose a split, and grill one piece.
+- **Can't be settled by talking** (look and feel, "will this library actually do X", performance): don't grind on it. Offer `/spike` for that one question and park what depends on it.
 - **Mode:** default to rounds. If the user says "one at a time", switch for the rest of the session.
 
 ## Holes first (when asked to challenge the plan, find gaps or risks, or say what is missing)
@@ -30,6 +32,14 @@ Drop questions where every option leads to the same outcome. Collect low-stakes 
 
 Never ask what can be looked up - file layout, existing patterns, versions, what a function does. Read the code or send a subagent while asking the rest of the frontier.
 
+When the code settles a likely answer, don't ask it: list it under "Assuming (from code):" at the top of the round, one line each with the file it rests on. The user corrects only what's wrong.
+
+## Terms and claims
+
+- If the user uses a term two ways, or unlike the code ("account": Customer or User?), make it a question.
+- If the user says how something works and the code disagrees, say so with file:line and ask which is right.
+- If the repo already has a glossary (GLOSSARY.md, CONTEXT.md, docs/glossary), add resolved terms there in plain words. Never create one unasked.
+
 ## Asking
 
 Prefer the `AskUserQuestion` tool when available (up to 4 questions with options; put the recommendation first, labelled "(Recommended)"). Otherwise:
@@ -40,7 +50,7 @@ Prefer the `AskUserQuestion` tool when available (up to 4 questions with options
 → Recommended: <answer> — <one-line why>
 ```
 
-Word each question so "yes" accepts the recommendation, and end the round with: "Reply 'ok' to take all recommendations, or answer by number."
+Word each question so "yes" accepts the recommendation. Mark **⚠** any question that is hard to reverse (stored data, public interfaces, money, security); a blanket "ok" does not cover ⚠ questions. End the round with: "Reply 'ok' to take all unmarked recommendations, or answer by number."
 
 ## Stop
 
@@ -48,4 +58,4 @@ Stop when no remaining question would change the outcome, or the user says "you 
 
 ## Record
 
-After the user confirms, write the decisions to the repo's existing ADR/decisions location if there is one, else `docs/decisions/<topic>.md` (or where the user prefers) - one line each: decision, choice, reason. Never overwrite an existing file; append a dated section to it instead. Later work cites this file instead of re-asking. Say the file is uncommitted and offer to commit it (ask before pushing); if the work spans several PRs, suggest `/spec <path>` next. If the session is long, suggest continuing in a fresh session that starts from that file.
+After the user confirms, write the decisions to the repo's existing ADR/decisions location if there is one, else `docs/decisions/<topic>.md` (or where the user prefers) - one line each: decision, choice, reason, and `chosen` (the user picked it) or `default` (taken via a recommendation, "ok", or "you decide"). Propose a separate ADR only for a decision that is hard to reverse, surprising without context, and a real trade-off. Never overwrite an existing file; append a dated section to it instead. Later work cites this file instead of re-asking. Say the file is uncommitted and offer to commit it (ask before pushing); if the work spans several PRs, suggest `/spec <path>` next. If the session is long, suggest continuing in a fresh session that starts from that file.
