@@ -41,7 +41,7 @@ TAG_RE = re.compile(r"<[A-Za-z/][^>]*>")
 ARG_TOKEN_RE = re.compile(r"(?<!\\)\$(\d+)")
 # YAML 1.1 reads yes/no/on/off as booleans; only literal true/false is portable.
 # Captures empty values and ignores trailing comments.
-RAW_BOOL_RE = re.compile(r"^(disable-model-invocation|user-invocable):[ \t]*([^\s#]*)[ \t]*(?:#[^\n]*)?\r?$", re.M)
+RAW_BOOL_RE = re.compile(r"^(disable-model-invocation|user-invocable):[ \t]*(\S*?)[ \t]*(?:[ \t]#[^\n]*)?\r?$", re.M)
 PERSONAL = pathlib.Path.home() / ".claude" / "skills"
 
 

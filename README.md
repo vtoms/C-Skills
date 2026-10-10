@@ -2,7 +2,7 @@
 
 Agent Skills for Claude Code. They're distilled from the two most-discussed skill packs of 2026, Matt Pocock's [AI Hero skills](https://www.aihero.dev/skills) and Lauren Tan's [pstack](https://github.com/backnotprop/pstack), and rewritten to fix what their users complained about. See [NOTICE.md](NOTICE.md) for attribution.
 
-**Status: v0.6.2, verified.** A 9-agent grid search of the most-starred and trending skill repos drove edits to every skill and added `review-feedback` and `spike`. Each change then passed independent regression checks, and every fix those checks prompted was itself re-checked. Results are in [docs/verification/](docs/verification/), with the latest in [round4-final](docs/verification/round4-final/RESULTS.md).
+**Status: v0.7, verified.** v0.6 came from a 9-agent grid search of the most-starred and trending skill repos, which drove edits to every skill and added `review-feedback` and `spike`. v0.7 adds evidence from 4,142 GitHub issues, 198 discussions and 973 Hacker News comments on those packs and on Claude Code's skill tracker; each edit addresses a gap with at least 2 independent reports. Every change passed independent regression checks, and every fix those checks prompted was re-checked. Results are in [docs/verification/](docs/verification/), with feedback-mining reports in [docs/research/feedback-mining/](docs/research/feedback-mining/).
 
 ## Skills
 

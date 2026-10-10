@@ -52,3 +52,27 @@ The descriptions are identical in v0.6.1 and v0.6.2; v0.6.2 changed only skill b
 ## Platform notes
 
 The live harness now decodes subprocess output as UTF-8. On Windows the default ANSI code page crashed the first run partway through; its 59-session partial log is kept in `round4-regression/`.
+
+## v0.7: feedback-mining round
+
+**Sources.** 4,142 GitHub issues (about 1,960 with full comment threads), 198 discussions, 235 skill-related Claude Code tracker issues and 973 Hacker News comments. These were collected with `tools/github/collect_feedback.py` through the signed-in GitHub CLI.
+
+**Method.** Six analysts clustered the feedback and checked each cluster against our skills. Most clusters were already handled. Edits were made only for gaps with at least 2 independent reports, for example:
+- implementing after a grill without being asked (more than 10 reports across 4 repos);
+- a passing or empty check that could never have failed (6 or more);
+- fixes that broke the code's dependents (3 or more);
+- stale steering text (4 or more).
+
+**Mechanics.** Two descriptions lost `<topic>`, because claude.ai and API uploads reject XML-like tags. The validator now also checks for XML tags, `$N` argument tokens (Claude Code substitutes them), literal booleans, the exact `SKILL.md` filename, an updated built-in name list, and personal-copy shadowing.
+
+**Regression.**
+- **First pass:** five independent checkers on v0.7-rc found small regressions. Examples:
+  - `handoff` would have committed a transcript path containing the OS username;
+  - `plain`'s CLAUDE.md offer could be confused with consent;
+  - `tdd`'s stub example could pass;
+  - the validator missed `$B$6` and boolean values with comments.
+
+  All are fixed in v0.7.
+- **Second pass:** a final check of those fixes came back **CLEAN**. Its one validator edge case (`true#c`) was fixed and tested against how YAML actually reads each value.
+
+**Activation.** No auto skill's description changed in v0.7; only the two manual skills' descriptions did. So the v0.6.x live results above (195/208, 56/56 precision) still apply.
