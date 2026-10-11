@@ -11,12 +11,12 @@ They live in `.claude/skills/`, so Claude Code loads them automatically in this 
 | Skill | Mode | What it does | Fixes this complaint about the original |
 |---|---|---|---|
 | `grill` | auto | Interviews you until every design decision is settled, then writes the decisions down | Too many questions ("200 questions", "10+ at once"): estimates the decision count up front, caps rounds at 4 questions, skips trivial tasks, supports "one at a time". It also leaves a durable record, which grill-me lacked (#311) |
-| `diagnose` | auto | Repro-first debugging loop: red-capable command → minimise → hypotheses → instrument → root-cause fix → regression test | Adds pstack's fix-root-causes rules (no silencing guards, suspect stale state on "after restart" bugs) |
-| `prove-it` | auto | Verifies against the real artifact and reports an evidence level (1–5) before saying "done" | Sized to the task, because pstack is criticised for ceremony on small fixes |
+| `diagnose` | auto | Repro-first debugging loop: red-capable command â†’ minimise â†’ hypotheses â†’ instrument â†’ root-cause fix â†’ regression test | Adds pstack's fix-root-causes rules (no silencing guards, suspect stale state on "after restart" bugs) |
+| `prove-it` | auto | Verifies against the real artifact and reports an evidence level (1â€“5) before saying "done" | Sized to the task, because pstack is criticised for ceremony on small fixes |
 | `blast-radius` | auto | Finds what a change breaks beyond the diff and proves the one load-bearing safety fact | Scales effort to the change |
 | `tdd` | auto | Vertical-slice red/green with agreed seams; no tautological tests | Works without a user present (chooses and states the seams) |
 | `interrogate` | manual | Parallel adversarial reviewer subagents with different lenses, then a lead verdict | Named to avoid clashing with the built-in `/code-review` (mattpocock/skills#483); single-model lenses replace pstack's Grok + Opus setup |
-| `spec` | manual | Turns settled decisions into a short spec plus 2–6 independently shippable vertical slices | Avoids process inflation: no tracker setup, a hard cap on slices, nothing created externally unless you ask |
+| `spec` | manual | Turns settled decisions into a short spec plus 2â€“6 independently shippable vertical slices | Avoids process inflation: no tracker setup, a hard cap on slices, nothing created externally unless you ask |
 | `handoff` | manual | Writes a handoff doc so a fresh agent can continue cold | Write it early, commit it, include a paste-able resume prompt |
 | `plain` | manual | Re-explains the last message in plain language | Combines `wait-what` and `/bro`. For a permanent preference, use a Claude Code output style instead |
 | `unslop` | manual | Removes AI-writing tells from prose while keeping meaning, tone, and code untouched | pstack's best-received standalone skill, rewritten shorter; makes no changes if the text is already clean |
@@ -24,13 +24,23 @@ They live in `.claude/skills/`, so Claude Code loads them automatically in this 
 | `spike` | manual | Answers one design question with time-boxed throwaway code in a scratch location, then reports answer, evidence and a delete/keep call | Pocock's `prototype` (~900k installs), renamed to avoid the hidden built-in `/prototype` |
 | `reflect` | manual | Turns session lessons into the strongest guard (type, test, lint, then a skill or CLAUDE.md edit) | Proposes changes before applying them; leaves out pstack's transcript-mining across workspaces |
 
+### Demo-video chain (Windows)
+
+Five manual skills that turn a web app into a narrated, captioned demo video: `demo-video` runs the chain and asks the setup questions (which screen, F11 full screen, zoom %), then `demo-plan` → `demo-script` (script approval) → `demo-record` → `demo-edit` (cut review). Built from the research in `docs/research/demo-video/` (Ultrademo and 20+ other projects).
+
+- **Built-ins only:** Windows PowerShell 5.1, .NET, WinRT media (MediaComposition renders the MP4), UI Automation, Win32 input, DXGI screen capture, WASAPI loopback audio, and Microsoft's Aria voice through a hand-written client. No ffmpeg, Playwright, pip or npm.
+- **No browser debug flags:** drives the real cursor and keyboard and reads the page through UI Automation, so it works on any normally started Edge or Chrome.
+- **Clip-based and traceable:** one take and one clip per scene, rebuilt only when their inputs change; edits (cut, freeze, pause) and effects (zoom and pan, highlight, spotlight, underline, magnifier callout) are post-production; every step is logged and every final is versioned.
+- **Talking apps:** records the app's own sound (for example a chat agent's spoken answer) and waits for it to finish.
+
+The toolkit lives in `.claude/skills/demo-video/tools/`; requirements and decisions are in `docs/demo-video/GOAL.md`, and a worked example is in `examples/machineavatars/`.
 **Left out on purpose:** autopilot, shipping and auto-merge playbooks, `sudo`/`curl | sh` installers, `@latest` dependencies, and multi-provider model routing. Those were the security and cost complaints raised about pstack. Skills may *recommend* a merge or push; enforce the real limits with branch protection and scoped tokens, not with instructions in a SKILL.md.
 
 ## Verification summary
 
 - **Static checks:** `tests/validate_skills.py` parses real YAML and rejects unknown frontmatter keys, non-third-person descriptions, missing trigger clauses, over-long descriptions, reserved names and unsafe commands. It caught three invalid-YAML regressions during development.
 - **Routing (blind, descriptions only):** 40/40 and 44/44 on two held-out sets.
-- **Live activation (real headless sessions, v0.6.x):** 195/208 on 104 held-out prompts × 2 runs, with no false loads (56/56 should-not-fire correct). `diagnose` went from 8/14 to 38/38. The remaining misses are mostly test-setup artifacts or critique prompts answered directly; see [round4-final](docs/verification/round4-final/RESULTS.md).
+- **Live activation (real headless sessions, v0.6.x):** 195/208 on 104 held-out prompts Ã— 2 runs, with no false loads (56/56 should-not-fire correct). `diagnose` went from 8/14 to 38/38. The remaining misses are mostly test-setup artifacts or critique prompts answered directly; see [round4-final](docs/verification/round4-final/RESULTS.md).
 - **Behaviour (blind three-arm test: none / placebo / real):** no measurable outcome gain on a strong model. All 18 runs succeeded in every arm. The value of these skills is consistency, safety rails, and a fixed report shape, not extra intelligence. See [round1-behaviour](docs/verification/round1-behaviour/RESULTS.md).
 - **Safety fixes found by red-teaming:**
   - `handoff` used to commit and push all work without asking.

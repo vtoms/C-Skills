@@ -63,6 +63,14 @@ foreach ($s in $scenes) {
     if ($wps -gt 3.1) { Warn ("{0}: narration runs {1:N1} words/s (over 3.1 sounds rushed; aim for 2.2-2.7)." -f $sid, $wps) }
     if (-not $estimated -and $wps -lt 1.8) { Warn ("{0}: narration runs {1:N1} words/s (slow; aim for 2.2-2.7)." -f $sid, $wps) }
     if ($words.Count -gt 45) { Warn "${sid}: $($words.Count) words in one scene; split it (one idea per scene)." }
+    # Narration lint (reference/narration.md): hype words, template openers, dashes, emojis, a bare "pause", tool talk.
+    $hype = '(?i)\b(revolutionary|seamless(ly)?|leverage|unlock|powerful|amazing|super easy|game[- ]changing|cutting[- ]edge|effortless(ly)?)\b'
+    foreach ($mt in [regex]::Matches($plain, $hype)) { Warn "${sid}: hype word '$($mt.Value)'; say the concrete benefit instead." }
+    if ($plain -match '(?i)^\s*(welcome to|this is a demo|in this video)') { Warn "${sid}: template opener; start with the viewer's problem or the product's value." }
+    if ($plain -match '[–—]') { Warn "${sid}: dash in narration; it reads badly aloud and in captions. Use a comma or [pause 300ms]." }
+    if ($plain -match '[\uD83C-\uDBFF]') { Warn "${sid}: emoji in narration." }
+    if ($plain -match '(?i)\bpause\b') { Warn "${sid}: the word 'pause' will be spoken; use [pause 400ms] for a real pause." }
+    if ($plain -match '(?i)\b(this video|AI[- ]generated|Claude|recorded automatically)\b') { Warn "${sid}: mentions how the video was made." }
     if ($s.narration -match '\[NEEDS:') { Err "${sid}: narration still has a [NEEDS: ...] marker." }
 
     # Simulate the schedule: when could each action really land, versus the word it is tied to?
