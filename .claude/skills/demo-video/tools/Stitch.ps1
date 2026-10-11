@@ -41,6 +41,8 @@ foreach ($s in $board.scenes) {
 }
 if ($problems) { throw ("Not ready to stitch:`n  " + ($problems -join "`n  ") + "`nRun RenderClip.ps1 (and Record.ps1 for stale scenes) first.") }
 $W = [int]$items[0].info.width; $H = [int]$items[0].info.height
+$sizes = @($items | ForEach-Object { "$($_.id) $($_.info.width)x$($_.info.height)" })
+if (@($items | Where-Object { [int]$_.info.width -ne $W -or [int]$_.info.height -ne $H }).Count) { throw ("Clips have different sizes (" + ($sizes -join ', ') + "). This happens when some takes were recorded full screen or before window cropping existed. Record the odd scenes again (Record.ps1 -Scenes ...) so all match.") }
 $skippedAll = @($items | ForEach-Object { $sid = $_.id; @($_.info.skipped_effects) | Where-Object { $_ } | ForEach-Object { "${sid}: $_" } })
 if ($skippedAll) { Write-Warning ("Effects missing from this cut: " + ($skippedAll -join '; ')) }
 

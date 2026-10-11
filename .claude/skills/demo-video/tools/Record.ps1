@@ -41,7 +41,9 @@ $sceneList = @(foreach ($s in $board.scenes) {
     $stale = -not $cur -or -not $cur.take -or $cur.record_hash -ne $hash
     if (-not $stale) {
         $tj = Join-Path $Dir "takes\$($s.id)\$($cur.take)\take.json"; $tm = Join-Path $Dir "audio\$($s.id).timing.json"
-        if ((Test-Path $tj) -and (Test-Path $tm)) { $tv = (Read-DemoJson $tj).voice; $cv = (Read-DemoJson $tm).voice; if ($tv -and $cv -and $tv -ne $cv) { $stale = $true; Write-Host "$($s.id): take was voiced by '$tv', narration is now '$cv': re-recording." } }
+        # A take voiced by the fallback Windows voice is re-recorded once the configured Aria voice can be used again.
+        $want = if (-not $project.voice.engine -or $project.voice.engine -eq 'aria') { $(if ($project.voice.name) { [string]$project.voice.name } else { 'en-US-AriaNeural' }) } else { $null }
+        if ($want -and (Test-Path $tj)) { $tv = (Read-DemoJson $tj).voice; if ($tv -and $tv -ne $want) { $stale = $true; Write-Host "$($s.id): take was voiced by '$tv' instead of '$want': recording again." } }
     }
     if ($Scenes) { if ($s.id -in $Scenes) { $s } }
     elseif ($All -or $Rehearse -or $VoiceOnly -or $stale) { $s }
@@ -351,7 +353,7 @@ foreach ($r in $results) {
         if ($covered) {
             Set-DemoManifestScene $manifest $id @{ take = $takeId; record_hash = (Get-DemoSceneRecordHash $r.scene $project) }
             $takeIds[$id] = $takeId
-        } else { $incomplete += $id; Write-Warning "${id}: take $takeId is incomplete (frames cover $([math]::Round(($lastT - $firstT) / 1e7, 1)) of $([math]::Round(($r.end - $r.start) / 1e7, 1)) s); kept for reference but not made current. Record the scene again." }
+        } else { $incomplete += $id; Write-Warning "${id}: take $takeId is incomplete (frames cover $([math]::Round(($lastT - $firstT) / 1e7, 1)) of $([math]::Round(($r.end - $r.start) / 1e7, 1)) s, longest gap $([math]::Round($maxGap / 1e7, 1)) s); kept for reference but not made current. Record the scene again." }
     }
 }
 if (-not $Rehearse) { Save-DemoManifest $Dir $manifest }

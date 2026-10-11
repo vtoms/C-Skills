@@ -13,7 +13,7 @@ Rehearse, then record one take per scene. Every take is kept; the manifest point
 
 **Arguments:** scene ids (like `s03`) go to `-Scenes`, joined with commas (`-Scenes "s02,s05"`); anything else is the project folder (default `demo/`).
 
-**Needs:** a storyboard that passes `Test-Storyboard.ps1` with 0 errors and whose summary line says "Script: approved". If it says "no approval" or "CHANGED since the last approval" (for example after rehearsal fixes), show the user what changed, and log their approval with `Note.ps1 -Dir <project> -Kind approval -Text "..."`.
+**Needs:** a storyboard that passes `Test-Storyboard.ps1` with 0 errors and whose summary line says "Script: approved" (or "accepted autonomously" when the user asked for autonomous work). If it says "no approval" or "CHANGED since the last approval" (for example after rehearsal fixes), show the user what changed, and log their approval with `Note.ps1 -Dir <project> -Kind approval -Text "..."`.
 
 **Hard rules** (they apply when this stage runs alone too):
 - No browser debugging or automation flags; built-ins only.
@@ -48,7 +48,7 @@ Each take folder holds:
 - page snapshots after every step;
 - `take.json`, with the exact scene and settings used.
 
-If the screen recorder stops mid-run (for example a UAC prompt), the run fails. A take whose frames or app audio don't cover the scene (or that has a gap of more than a second) is kept but **not** made current, and the run says so. A take voiced by the fallback Windows voice is re-recorded automatically once Aria works again. A failed scene stops the run; scenes recorded before it are kept.
+If the screen recorder stops mid-run (for example a UAC prompt), the run fails. A take whose frames or app audio don't cover the scene (or that has a gap of more than a second) is kept but **not** made current, and the run says so. A take voiced by the fallback Windows voice is recorded again on the next run, once Aria is reachable. A failed scene stops the run; scenes recorded before it are kept.
 
 ## 3. Check
 - **Run output:** every scene recorded; no click more than about 0.4 s off its word; no "incomplete" or "different voices" warnings.

@@ -122,7 +122,7 @@ foreach ($scene in $targets) {
     if (-not $entry -or -not $entry.take) { Write-Warning "${id}: no take yet; record it first."; continue }
     $takeDir = Join-Path $Dir "takes\$id\$($entry.take)"
     $take = Read-DemoJson (Join-Path $takeDir 'take.json')
-    $post = [ordered]@{ take = $entry.take; effects = $scene.effects; edits = $scene.edits; auto_trim = $scene.auto_trim; captions = $captionsOn; caption_position = $scene.caption_position; app_audio_volume = $project.app_audio_volume; width = $W; font = $font; accent = $accent; renderer = $rendererVersion }
+    $post = [ordered]@{ take = $entry.take; effects = $scene.effects; edits = $scene.edits; auto_trim = $scene.auto_trim; captions = $captionsOn; caption_position = $scene.caption_position; app_audio_volume = $project.app_audio_volume; crop = $project.crop; width = $W; font = $font; accent = $accent; renderer = $rendererVersion }
     $renderHash = Get-DemoHash $post
     $clipDir = Join-Path $Dir "clips\$id"
     $clipPath = Join-Path $clipDir "$($entry.take)-$renderHash.mp4"
@@ -189,7 +189,7 @@ foreach ($scene in $targets) {
     $inCut = { param($t) foreach ($c in $allCuts) { if ($t -ge $c[0] -and $t -lt $c[1]) { return $true } }; $false }
     $frozenAt = { param($t) foreach ($f in $freezes) { if ($t -ge $f[0] -and $t -lt $f[1]) { return $f[0] } }; $null }
     $pauseQueue = @($pauses | Sort-Object at)
-    $pq = 0; $afterCut = $false
+    $pq = 0; $afterCut = $false; $lastTn = -1e9
     for ($k = 0; $k -lt $frames.Count; $k++) {
         $f = $frames[$k]
         $from = if ($k -eq 0) { $sceneFrom } else { $f.t }
@@ -197,11 +197,12 @@ foreach ($scene in $targets) {
         if (& $inCut $from) { $afterCut = $true; continue }
         while ($pq -lt $pauseQueue.Count -and $pauseQueue[$pq].at -lt $to) {
             # Narration time stands still just before this frame, so captions and effects keep the preceding state.
-            $plan.Add([pscustomobject]@{ frame = $f; src = $from; tn = [math]::Min($from, $pauseQueue[$pq].at) - 0.08; dur = $pauseQueue[$pq].sec; kind = 'pause'; blend = $false }); $pq++   # clear of the caption lookup's 0.05 s lead
+            $plan.Add([pscustomobject]@{ frame = $f; src = $from; tn = [math]::Max($lastTn, [math]::Min($from, $pauseQueue[$pq].at) - 0.06); dur = $pauseQueue[$pq].sec; kind = 'pause'; blend = $false }); $pq++   # clear of the caption lookup's 0.05 s lead
         }
         $fz = & $frozenAt $from
         $useFrame = $f
         if ($null -ne $fz) { $useFrame = ($frames | Where-Object { $_.t -le $fz } | Select-Object -Last 1); if (-not $useFrame) { $useFrame = $f } }
+        $lastTn = $from
         $plan.Add([pscustomobject]@{ frame = $useFrame; src = $(if ($null -ne $fz) { $fz } else { $from }); tn = $from; dur = [math]::Max(0.001, $to - $from); kind = 'play'; blend = $afterCut; audioFrom = $from })
         $afterCut = $false
     }
@@ -218,10 +219,10 @@ foreach ($scene in $targets) {
             $cue = ($appLoud | Measure-Object -Minimum).Minimum; $phraseEnd = ($appLoud | Measure-Object -Maximum).Maximum
         }
         $rect = Resolve-TargetRect $take $e $cue
-        if (-not $rect) { $skippedFx += "$($e.type) at word $($e.at_word): target not found"; continue }
+        if (-not $rect) { $skippedFx += "$($e.type) $(if ($null -ne $e.at_word) { "at word $($e.at_word)" } elseif ($e.at_app_audio) { 'during app audio' } else { "at $($e.at)s" }): target not found"; continue }
         $vx = [math]::Max(0, [math]::Min($rect.x + $rect.w, $cap.x + $bx + $bw) - [math]::Max($rect.x, $cap.x + $bx))
         $vy = [math]::Max(0, [math]::Min($rect.y + $rect.h, $cap.y + $by + $bh) - [math]::Max($rect.y, $cap.y + $by))
-        if ($rect.w * $rect.h -le 0 -or ($vx * $vy) / ($rect.w * $rect.h) -lt 0.6) { Write-Warning "${id}: $($e.type) target is mostly off-screen at word $($e.at_word); effect skipped. Scroll it into view first or pick another target."; $skippedFx += "$($e.type) at word $($e.at_word): off-screen"; continue }
+        if ($rect.w * $rect.h -le 0 -or ($vx * $vy) / ($rect.w * $rect.h) -lt 0.6) { Write-Warning "${id}: $($e.type) target is mostly off-screen at word $($e.at_word); effect skipped. Scroll it into view first or pick another target."; $skippedFx += "$($e.type) $(if ($null -ne $e.at_word) { "at word $($e.at_word)" } elseif ($e.at_app_audio) { 'during app audio' } else { "at $($e.at)s" }): off-screen"; continue }
         $def = switch ($e.type) {
             'zoom'      { @{ lead = 0.6; in = 0.75; out = 0.9; tail = 0.4; min = 1.5 } }
             'highlight' { @{ lead = 0.0; in = 0.22; out = 0.2; tail = 0.3; min = 1.0 } }

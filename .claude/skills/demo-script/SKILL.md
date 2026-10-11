@@ -63,6 +63,6 @@ Also give them:
 - any NOT FOUND features that were left out;
 - the audio files in `<project>/audio/`, offered for listening.
 
-Change and re-validate until they approve, then log it: `Note.ps1 -Dir <project> -Kind approval -Text "Script approved"`. That records the exact storyboard version; Test-Storyboard's summary line then says "Script: approved", or "CHANGED since the last approval" if the storyboard is edited afterwards. Don't record before approval. If the user told you to work autonomously, log your reasoning with `Note.ps1 -Dir <project> -Kind decision -Text "..."` instead.
+Change and re-validate until they approve, then log it: `Note.ps1 -Dir <project> -Kind approval -Text "Script approved"`. That records the exact storyboard version; Test-Storyboard's summary line then says "Script: approved", or "CHANGED since the last approval" if the storyboard is edited afterwards. Don't record before approval. If the user told you to work autonomously, log `Note.ps1 -Dir <project> -Kind decision -Text "Script accepted autonomously: <reason>"` instead (never log an approval the user did not give); the summary line then says "accepted autonomously".
 
 **Next:** when run from `/demo-video`, read `../demo-record/SKILL.md` and continue. When run alone, stop and tell the user the next step is `/demo-record`.

@@ -105,6 +105,7 @@ function Get-DemoSceneRecordHash($Scene, $Project) {
         phrases = @($Scene.effects | Where-Object { $_.target.text } | ForEach-Object { [string]$_.target.text } | Sort-Object -Unique)   # measured during the take; other effect changes never need a new take
         app_url = $Project.app_url; monitor = $Project.monitor; fullscreen = $Project.fullscreen; zoom = $Project.zoom; browser = $Project.browser; voice = $Project.voice }
     if ($Project.app_audio) { $h.app_audio = $true }   # only when on, so projects without app sound keep their hashes
+    if ($Project.crop) { $h.crop = [string]$Project.crop }   # decides whether the window area is recorded
     Get-DemoHash $h
 }
 

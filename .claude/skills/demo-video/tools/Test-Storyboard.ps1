@@ -184,8 +184,12 @@ if ($script:callouts -gt 2) { Warn "storyboard: $($script:callouts) magnifier ca
 $approval = 'no approval logged yet'
 $logPath = Join-Path $Dir 'log.jsonl'
 if (Test-Path $logPath) {
-    $last = @(Get-Content $logPath | ForEach-Object { try { $_ | ConvertFrom-Json } catch { } } | Where-Object { $_.step -eq 'note' -and $_.kind -eq 'approval' }) | Select-Object -Last 1
-    if ($last) { $approval = if ($last.storyboard_hash -eq (Get-DemoHash ([IO.File]::ReadAllText($boardPath)))) { "approved ($($last.time))" } else { 'CHANGED since the last approval: show the user the changes and log a new approval' } }
+    $notes = @(Get-Content $logPath | ForEach-Object { try { $_ | ConvertFrom-Json } catch { } } | Where-Object { $_.step -eq 'note' -and $_.storyboard_hash })
+    $last = $notes | Where-Object { $_.kind -eq 'approval' -or ($_.kind -eq 'decision' -and $_.text -match '(?i)accept') } | Select-Object -Last 1
+    if ($last) {
+        $how = if ($last.kind -eq 'approval') { 'approved' } else { 'accepted autonomously' }
+        $approval = if ($last.storyboard_hash -eq (Get-DemoHash ([IO.File]::ReadAllText($boardPath)))) { "$how ($($last.time))" } else { 'CHANGED since it was approved: show the user the changes and log a new approval' }
+    }
 }
 if (-not $Quiet) {
     $errors | ForEach-Object { "ERROR: $_" }

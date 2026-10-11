@@ -61,9 +61,10 @@ for ($i = 1; $i -le $Screens; $i++) {
     Save-Shot $png
     $map = @(Get-DemoElementMap $w 500)
     if ($map.Count) { Write-DemoJson $map (Join-Path $OutDir ('screen-{0:D2}.json' -f $i)) } else { [IO.File]::WriteAllText((Join-Path $OutDir ('screen-{0:D2}.json' -f $i)), '[]') }
-    $sig = (($map | ForEach-Object { "$($_.name)|$($_.y)" }) -join ';') + '#' + (Get-FileHash $png -Algorithm MD5).Hash   # elements and pixels both unchanged = page end
-    if ($i -gt 1 -and $sig -eq $prevSig) { Remove-Item (Join-Path $OutDir ('screen-{0:D2}.*' -f $i)); Write-Host "Page end reached after $($i - 1) screen(s)."; break }   # scrolling no longer changes anything
-    $prevSig = $sig
+    $sig = ($map | ForEach-Object { "$($_.name)|$($_.y)" }) -join ';'
+    $samePixels = $i -gt 1 -and ([DemoKit.FrameCompose]::Differences([string[]]@($prevPng, $png))[1] -lt 1.5)   # caret blinks or small animations allowed
+    if ($i -gt 1 -and $sig -eq $prevSig -and $samePixels) { Remove-Item (Join-Path $OutDir ('screen-{0:D2}.*' -f $i)); Write-Host "Page end reached after $($i - 1) screen(s)."; break }   # scrolling no longer changes anything
+    $prevSig = $sig; $prevPng = $png
     $summary += [pscustomobject]@{ screen = $i; png = [IO.Path]::GetFileName($png); elements = $map.Count
         buttons = @($map | Where-Object { $_.type -eq 'Button' } | ForEach-Object { $_.name } | Select-Object -First 25)
         links = @($map | Where-Object { $_.type -eq 'Hyperlink' } | ForEach-Object { $_.name } | Select-Object -First 25)
@@ -74,7 +75,7 @@ for ($i = 1; $i -le $Screens; $i++) {
     }
 }
 if ($dx) { $dx.Dispose() }
-Write-DemoJson ([ordered]@{ url = $Url; title = $w.Current.Name; screens = $summary }) (Join-Path $OutDir 'scout.json')
+Write-DemoJson ([ordered]@{ url = $Url; title = $w.Current.Name; hwnd = [long]$w.Current.NativeWindowHandle; browser = $Browser; screens = $summary }) (Join-Path $OutDir 'scout.json')
 if ($FullScreen -and -not $KeepOpen -and -not $Attach) { Exit-DemoFullScreen }
 if (-not $KeepOpen -and -not $Attach) { try { ($w.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern)).Close() } catch { }; Remove-DemoThrowawayProfile }
 $summary | ForEach-Object { "screen $($_.screen): $($_.elements) elements; buttons: $(($_.buttons | Select-Object -First 12) -join ' | ')" }

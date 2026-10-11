@@ -180,9 +180,11 @@ function Find-DemoDocumentUncached($Window, [int]$TimeoutMs) {
 function Find-DemoElement($Window, $Target, [int]$TimeoutMs = 5000) {
     $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
     $AE = [System.Windows.Automation.AutomationElement]
-    $scrolled = $false
+    $scrolled = 0
     do {
-        $root = Get-DemoDocument $Window 1500; if (-not $root) { $root = $Window }
+        $left = [int]($deadline - [DateTime]::UtcNow).TotalMilliseconds
+        if ($left -le 0) { break }
+        $root = Get-DemoDocument $Window ([math]::Min(1500, [math]::Max(100, $left))); if (-not $root) { $root = $Window }
         if ($Target.within) {
             # Search only inside the container; if it is not there (yet), wait and try again, never the whole page.
             $left = [int][math]::Max(250, ($deadline - [DateTime]::UtcNow).TotalMilliseconds)
@@ -195,12 +197,12 @@ function Find-DemoElement($Window, $Target, [int]$TimeoutMs = 5000) {
         if ($Target.name -and -not $Target.name.Contains('*')) { $conds.Add((New-Object System.Windows.Automation.PropertyCondition $AE::NameProperty, $Target.name)) }  # filtered by the browser: fast
         $cond = if ($conds.Count -eq 0) { [System.Windows.Automation.Condition]::TrueCondition } elseif ($conds.Count -eq 1) { $conds[0] } else { New-Object System.Windows.Automation.AndCondition (, $conds.ToArray()) }
         $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $cond)
-        $offscreen = $null
+        $offscreen = @()
         $hits = foreach ($e in $all) {
             try {
                 $c = $e.Current
                 if ($c.IsOffscreen -or $c.BoundingRectangle.IsEmpty -or $c.BoundingRectangle.Width -lt 2) {
-                    if (-not $offscreen -and $c.IsOffscreen -and (-not $Target.name -or $c.Name -like $Target.name)) { $offscreen = $e }
+                    if ($c.IsOffscreen -and (-not $Target.name -or $c.Name -like $Target.name)) { $offscreen += $e }
                     continue
                 }
                 if ($Target.name) { if ($Target.name.Contains('*')) { if ($c.Name -notlike $Target.name) { continue } } elseif ($c.Name -ne $Target.name) { continue } }
@@ -222,8 +224,9 @@ function Find-DemoElement($Window, $Target, [int]$TimeoutMs = 5000) {
         $idx = if ($Target.index) { [int]$Target.index } else { 0 }
         if ($hits.Count -gt $idx) { return $hits[$idx] }
         # Exploring and off-camera replays may scroll a target into view (never while recording: that would be a jump).
-        if ($script:AutoScroll -and $offscreen -and -not $scrolled) {
-            try { ($offscreen.GetCurrentPattern([System.Windows.Automation.ScrollItemPattern]::Pattern)).ScrollIntoView(); $scrolled = $true; Start-Sleep -Milliseconds 500; continue } catch { }
+        if ($script:AutoScroll -and $offscreen.Count -and $scrolled -lt 3) {
+            $want = $offscreen[[math]::Min([math]::Max(0, $idx - $hits.Count), $offscreen.Count - 1)]   # the next match the index asks for
+            try { ($want.GetCurrentPattern([System.Windows.Automation.ScrollItemPattern]::Pattern)).ScrollIntoView(); $scrolled++; Start-Sleep -Milliseconds 500; continue } catch { }
         }
         Start-Sleep -Milliseconds 250
         $script:DocCache.Remove([string]$Window.Current.NativeWindowHandle)   # the page may have changed: look it up again
@@ -316,10 +319,11 @@ function Invoke-DemoAction($Window, $Action, [int]$GlideMs = 700, [long]$At = 0)
             }
         }
         'key' {
-            $spec = ([string]$Action.keys).Trim(); if ($spec -eq '+') { $spec = 'Plus' }
+            $spec = ([string]$Action.keys).Trim()
             $spec = $spec -replace '\+\+$', '+Plus'   # "Ctrl++" means Ctrl and the plus key
             $needShift = $false
-            $keys = @($spec.Split('+') | ForEach-Object {
+            $parts = if ($spec -eq '+') { @('+') } else { $spec.Split('+') }   # a lone "+" types the plus character
+            $keys = @($parts | ForEach-Object {
                 $k = $_.Trim()
                 if ($VK.ContainsKey($k)) { $VK[$k] }
                 elseif ($k -match '^(?i)F([1-9]|1[0-2])$') { 0x6F + [int]$matches[1] }

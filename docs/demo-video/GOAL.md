@@ -85,4 +85,11 @@ Status key: âœ… built and tested Â· ðŸ”§ in progress Â· â³ not 
 | Storyboard format | JSON | PowerShell has no built-in YAML parser |
 | Invocation | All skills manual (`/name`) | They move the real mouse and record the screen |
 
+## Verification so far
+
+- Built and run end to end on a local test app and on the live site machineavatars.com (a talking 3D chat agent, with its spoken answers recorded from system audio).
+- Round 1 of independent checks: a code review, a skills review, and a fresh agent that ran the whole chain from the written skills alone. Together they produced about 75 findings, all addressed.
+- Round 2: independent regression checks of those fixes, plus a second fresh-agent run that covered every effect, edit and retake path. About 30 further findings, all addressed and re-tested live.
+- Round 3: an independent regression check of the round-2 fixes confirmed them and found 10 smaller defects (for example, window titles containing wildcard characters, and clips of different sizes). All were fixed and tested live.
+
 Research behind these decisions is in `docs/research/demo-video/`. The toolkit is in `.claude/skills/demo-video/tools/`; the skills are `demo-video`, `demo-plan`, `demo-script`, `demo-record` and `demo-edit`.

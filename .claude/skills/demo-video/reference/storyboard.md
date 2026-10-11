@@ -38,7 +38,7 @@ Never edit `log.jsonl`, `manifest.json` or anything under `takes/` by hand; add 
 | `brand` | `{ "accent": "#RRGGBB", "background_from": "#RRGGBB", "background_to": "#RRGGBB", "font": "Segoe UI" }`. |
 | `music` | Optional `{ "file": "music.mp3", "volume": 0.12 }` (a file the user supplies and has rights to). |
 | `output` | `{ "width": 1920, "name": "acme-demo" }`. |
-| `crop` | Without F11 the video shows only the browser window (inside the screen's work area, so no taskbar). `"screen"` keeps the whole screen. |
+| `crop` | Without F11 the video shows only the browser window (inside the screen's work area, so no taskbar). `"screen"` keeps the whole screen. Changing it means recording again; all clips in one video must be the same size (Stitch checks). |
 | `replay_earlier` | Default true: scenes that are not being recorded are replayed off-camera, in order, so each recorded scene starts from the right app state. Set false if replaying would repeat a step that must not repeat (then reset state in `pre`). |
 
 Changing `app_url`, `browser`, `monitor`, `fullscreen`, `zoom`, `voice` or `app_audio` makes every take stale.

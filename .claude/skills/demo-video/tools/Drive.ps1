@@ -19,13 +19,17 @@ if ($Dir) {
     $pj = Read-DemoJson (Join-Path (Resolve-Path $Dir).Path 'project.json')
     if (-not $Attach) { $Attach = $pj.window_title }
     $scoutInfo = Join-Path (Resolve-Path $Dir).Path 'scout\scout.json'
-    if (-not $Attach -and (Test-Path $scoutInfo)) { $Attach = [string](Read-DemoJson $scoutInfo).title }   # the window Scout opened
+    if (-not $Attach -and (Test-Path $scoutInfo)) { $hwnd = [long](Read-DemoJson $scoutInfo).hwnd }   # the window Scout left open
     if (-not $Browser -and $pj.browser) { $Browser = $pj.browser }
 }
 if (-not $Browser) { $Browser = 'msedge' }
-if (-not $Attach) { throw 'Give -Attach "<window title pattern>" (or a project with window_title).' }
-$w = Get-DemoBrowserWindow $Browser $Attach
-if (-not $w) { throw "No open $Browser window titled '$Attach'. Open it first (Scout.ps1 -KeepOpen or Open.ps1)." }
+$w = $null
+if ($hwnd) { try { $w = [System.Windows.Automation.AutomationElement]::FromHandle([IntPtr]$hwnd); [void]$w.Current.Name } catch { $w = $null } }
+if (-not $w) {
+    if (-not $Attach) { throw 'No window to drive: run Scout.ps1 -Dir <project> -KeepOpen first, or give -Attach "<window title*>".' }
+    $w = Get-DemoBrowserWindow $Browser $Attach
+}
+if (-not $w) { throw "No open $Browser window titled '$Attach' (titles are wildcard patterns: write [InPrivate] as *InPrivate*). Open it first (Scout.ps1 -KeepOpen or Open.ps1)." }
 [void][DemoKit.Win32Input]::Activate([IntPtr]$w.Current.NativeWindowHandle)
 Set-DemoAutoScroll $true   # exploring: bring targets into view when needed
 if ($StepsFile) { $Steps = [IO.File]::ReadAllText((Resolve-Path $StepsFile).Path) }
