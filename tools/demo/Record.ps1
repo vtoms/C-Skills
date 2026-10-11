@@ -146,6 +146,22 @@ if (-not $Rehearse) {
 $actionLog = Join-Path $session 'actions.jsonl'
 Set-DemoActionLog $actionLog
 
+# --- 3b. Bring the app to the state the first selected scene starts from: when re-recording a later scene on its own,
+# replay the steps of every earlier scene quickly and off-camera (frames before the scene are discarded anyway).
+$firstIdx = [array]::IndexOf(@($board.scenes | ForEach-Object { $_.id }), $sceneList[0].id)
+if ($firstIdx -gt 0 -and -not $Rehearse -and $project.replay_earlier -ne $false) {
+    "Replaying $firstIdx earlier scene(s) to reach the starting state..."
+    [DemoKit.Win32Input]::Activate([IntPtr]$window.Current.NativeWindowHandle) | Out-Null
+    foreach ($prev in @($board.scenes)[0..($firstIdx - 1)]) {
+        foreach ($a in @($prev.pre) + @($prev.actions)) {
+            if (-not $a) { continue }
+            $fast = $a.PSObject.Copy(); if ($fast.do -eq 'type') { $fast | Add-Member -Force cps 60 }
+            Invoke-DemoAction $window $fast 250
+        }
+    }
+    Start-Sleep -Milliseconds 400
+}
+
 # --- 4. Scenes ---
 $results = @(); $failed = $null; $s = $null
 try {

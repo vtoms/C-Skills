@@ -1,4 +1,4 @@
-# Joins the current scene clips into the final video with Windows' built-in MediaComposition:
+﻿# Joins the current scene clips into the final video with Windows' built-in MediaComposition:
 # title card, crossfades between scenes, optional outro card and music bed, merged captions and chapters.
 # Each run writes a new numbered version to <Dir>/final and records exactly which clips went into it.
 #
@@ -104,7 +104,7 @@ if ($project.music.file) {
 
 # Version number and render.
 $finalDir = Join-Path $Dir 'final'
-$ver = 1 + @(Get-ChildItem $finalDir -Filter "$Name-v*.mp4" -ErrorAction SilentlyContinue | ForEach-Object { if ($_.BaseName -match '-v(\d+)$') { [int]$matches[1] } } | Measure-Object -Maximum).Maximum
+$ver = 1 + [int]@(Get-ChildItem $finalDir -Filter "$Name-v*.mp4" -ErrorAction SilentlyContinue | ForEach-Object { if ($_.BaseName -match '-v(\d+)$') { [int]$matches[1] } } | Measure-Object -Maximum).Maximum
 $out = Join-Path $finalDir ('{0}-v{1:D3}.mp4' -f $Name, $ver)
 $profile = [Windows.Media.MediaProperties.MediaEncodingProfile]::CreateMp4([Windows.Media.MediaProperties.VideoEncodingQuality]::HD1080p)
 $profile.Video.Width = $W; $profile.Video.Height = $H; $profile.Video.FrameRate.Numerator = 30; $profile.Video.FrameRate.Denominator = 1

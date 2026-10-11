@@ -60,12 +60,17 @@ function Resolve-TargetRect($Take, $Effect, [double]$T) {
     if ($Effect.rect) { return @{ x = [double]$Effect.rect.x; y = [double]$Effect.rect.y; w = [double]$Effect.rect.w; h = [double]$Effect.rect.h } }
     $tt = $Take.voice_start + [long]($T * 1e7)
     $snaps = @($Take.snapshots | Sort-Object t)
-    $snap = @($snaps | Where-Object { $_.t -le $tt } | Select-Object -Last 1)[0]
+    # The page as it looks at time T: the first snapshot taken after the last action that started before T
+    # (a snapshot is stamped when the page settled, which can be after T); else the latest one before T.
+    $lastAct = @($Take.actions | Where-Object { [long]$_.start -le $tt } | Sort-Object { [long]$_.start } | Select-Object -Last 1)[0]
+    $snap = $null
+    if ($lastAct) { $snap = @($snaps | Where-Object { $_.t -ge [long]$lastAct.start } | Select-Object -First 1)[0] }
+    if (-not $snap) { $snap = @($snaps | Where-Object { $_.t -le $tt } | Select-Object -Last 1)[0] }
     if (-not $snap) { $snap = $snaps[0] }
     $tg = $Effect.target
     if ($tg.text) {
         # A phrase on screen: rectangles were measured during the take (TextPattern) for every phrase the effects named.
-        $hit = @($snaps | Where-Object { $_.t -le $tt } | ForEach-Object { $_.texts } | Where-Object { $_.text -eq $tg.text }) | Select-Object -Last 1
+        $hit = @($snap.texts | Where-Object { $_.text -eq $tg.text }) | Select-Object -First 1
         if (-not $hit) { $hit = @($snaps | ForEach-Object { $_.texts } | Where-Object { $_.text -eq $tg.text }) | Select-Object -First 1 }
         if (-not $hit) { throw "Phrase '$($tg.text)' was not measured in this take. Phrase targets are measured while recording: re-record the scene (or give a rect)." }
         return @{ x = [double]$hit.x; y = [double]$hit.y; w = [double]$hit.w; h = [double]$hit.h }

@@ -210,6 +210,7 @@ function Get-DemoTextRects($Window, [string[]]$Texts) {
                 $cur = $e.Current
                 if ($cur.IsOffscreen -or $cur.BoundingRectangle.IsEmpty -or $cur.Name.IndexOf($t, [StringComparison]::OrdinalIgnoreCase) -lt 0) { continue }
                 $a = $cur.BoundingRectangle.Width * $cur.BoundingRectangle.Height
+                if (-not [string]::Equals($cur.Name.Trim(), $t, [StringComparison]::OrdinalIgnoreCase)) { $a += 1e9 }   # exact label beats a longer one that merely contains it
                 if ($a -lt $bestArea) { $best = $e; $bestArea = $a }
             } catch { }
         }
