@@ -100,10 +100,12 @@ function Set-DemoManifestScene($Manifest, [string]$Id, [hashtable]$Values) {
 }
 # What a scene's recording depends on; when this changes, the scene's take is stale and must be re-recorded.
 function Get-DemoSceneRecordHash($Scene, $Project) {
-    Get-DemoHash ([ordered]@{
+    $h = [ordered]@{
         narration = $Scene.narration; voice_override = $Scene.voice; pre = $Scene.pre; actions = $Scene.actions
         phrases = @($Scene.effects | Where-Object { $_.target.text } | ForEach-Object { [string]$_.target.text } | Sort-Object -Unique)   # measured during the take; other effect changes never need a new take
-        app_url = $Project.app_url; monitor = $Project.monitor; fullscreen = $Project.fullscreen; zoom = $Project.zoom; browser = $Project.browser; voice = $Project.voice; app_audio = [bool]$Project.app_audio })
+        app_url = $Project.app_url; monitor = $Project.monitor; fullscreen = $Project.fullscreen; zoom = $Project.zoom; browser = $Project.browser; voice = $Project.voice }
+    if ($Project.app_audio) { $h.app_audio = $true }   # only when on, so projects without app sound keep their hashes
+    Get-DemoHash $h
 }
 
 function Get-DemoMonitor([int]$Index) {

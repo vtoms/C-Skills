@@ -10,6 +10,10 @@ $script:ActionLog = $null
 $script:Settle = 350   # ms to let the page react after an action
 $script:LastClick = 0
 $script:FindTimeoutMs = 5000
+$script:AutoScroll = $false
+$script:LastLand = 0
+function Set-DemoAutoScroll([bool]$On) { $script:AutoScroll = $On }
+function Get-DemoLastLand { $script:LastLand }
 function Set-DemoFindTimeout([int]$Ms) { $script:FindTimeoutMs = $Ms }
 function Get-DemoLastClick { $script:LastClick }
 
@@ -126,7 +130,9 @@ function Remove-DemoThrowawayProfile {
 }
 # Removes throwaway profiles left by earlier runs (older than an hour), which may hold the app's session cookies.
 function Clear-DemoStaleProfiles {
+    $inUse = @(Get-CimInstance Win32_Process -Filter "Name='msedge.exe' OR Name='chrome.exe'" -ErrorAction SilentlyContinue | ForEach-Object { $_.CommandLine })
     Get-ChildItem $env:TEMP -Directory -Filter 'demo-browser-*' -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt (Get-Date).AddHours(-1) } |
+        Where-Object { $n = $_.Name; -not ($inUse | Where-Object { $_ -and $_.Contains($n) }) } |
         ForEach-Object { try { Remove-Item -Recurse -Force $_.FullName -ErrorAction Stop } catch { } }
 }
 function Exit-DemoFullScreen { [DemoKit.Win32Input]::KeyPress($VK.F11); Start-Sleep -Milliseconds 600 }
@@ -172,21 +178,31 @@ function Find-DemoDocumentUncached($Window, [int]$TimeoutMs) {
 # target: @{ name = 'text or *wildcard*'; type = 'Button'|'Hyperlink'|'Edit'|...; id = 'automationId'; index = 0
 #           within = <another target to search inside>; pick = first|last|top-left|top-right|bottom-left|bottom-right }
 function Find-DemoElement($Window, $Target, [int]$TimeoutMs = 5000) {
-    $root = Get-DemoDocument $Window; if (-not $root) { $root = $Window }
-    if ($Target.within) { $inner = Find-DemoElement $Window $Target.within $TimeoutMs; if (-not $inner) { return $null }; $root = $inner }
     $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
     $AE = [System.Windows.Automation.AutomationElement]
+    $scrolled = $false
     do {
+        $root = Get-DemoDocument $Window 1500; if (-not $root) { $root = $Window }
+        if ($Target.within) {
+            # Search only inside the container; if it is not there (yet), wait and try again, never the whole page.
+            $left = [int][math]::Max(250, ($deadline - [DateTime]::UtcNow).TotalMilliseconds)
+            $root = Find-DemoElement $Window $Target.within ([math]::Min(1500, $left))
+            if (-not $root) { Start-Sleep -Milliseconds 250; $script:DocCache.Remove([string]$Window.Current.NativeWindowHandle); continue }
+        }
         $conds = New-Object System.Collections.Generic.List[System.Windows.Automation.Condition]
         if ($Target.type) { $ct = [System.Windows.Automation.ControlType]::($Target.type); $conds.Add((New-Object System.Windows.Automation.PropertyCondition $AE::ControlTypeProperty, $ct)) }
         if ($Target.id) { $conds.Add((New-Object System.Windows.Automation.PropertyCondition $AE::AutomationIdProperty, $Target.id)) }
         if ($Target.name -and -not $Target.name.Contains('*')) { $conds.Add((New-Object System.Windows.Automation.PropertyCondition $AE::NameProperty, $Target.name)) }  # filtered by the browser: fast
         $cond = if ($conds.Count -eq 0) { [System.Windows.Automation.Condition]::TrueCondition } elseif ($conds.Count -eq 1) { $conds[0] } else { New-Object System.Windows.Automation.AndCondition (, $conds.ToArray()) }
         $all = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $cond)
+        $offscreen = $null
         $hits = foreach ($e in $all) {
             try {
                 $c = $e.Current
-                if ($c.IsOffscreen -or $c.BoundingRectangle.IsEmpty -or $c.BoundingRectangle.Width -lt 2) { continue }
+                if ($c.IsOffscreen -or $c.BoundingRectangle.IsEmpty -or $c.BoundingRectangle.Width -lt 2) {
+                    if (-not $offscreen -and $c.IsOffscreen -and (-not $Target.name -or $c.Name -like $Target.name)) { $offscreen = $e }
+                    continue
+                }
                 if ($Target.name) { if ($Target.name.Contains('*')) { if ($c.Name -notlike $Target.name) { continue } } elseif ($c.Name -ne $Target.name) { continue } }
                 $e
             } catch { }
@@ -205,10 +221,12 @@ function Find-DemoElement($Window, $Target, [int]$TimeoutMs = 5000) {
         }
         $idx = if ($Target.index) { [int]$Target.index } else { 0 }
         if ($hits.Count -gt $idx) { return $hits[$idx] }
+        # Exploring and off-camera replays may scroll a target into view (never while recording: that would be a jump).
+        if ($script:AutoScroll -and $offscreen -and -not $scrolled) {
+            try { ($offscreen.GetCurrentPattern([System.Windows.Automation.ScrollItemPattern]::Pattern)).ScrollIntoView(); $scrolled = $true; Start-Sleep -Milliseconds 500; continue } catch { }
+        }
         Start-Sleep -Milliseconds 250
         $script:DocCache.Remove([string]$Window.Current.NativeWindowHandle)   # the page may have changed: look it up again
-        $root = Get-DemoDocument $Window 1500; if (-not $root) { $root = $Window }
-        if ($Target.within) { $inner = Find-DemoElement $Window $Target.within 1000; if ($inner) { $root = $inner } else { continue } }
     } while ([DateTime]::UtcNow -lt $deadline)
     $null
 }
@@ -285,9 +303,10 @@ function Invoke-DemoAction($Window, $Action, [int]$GlideMs = 700, [long]$At = 0)
             if ($At -gt 0) { $wait = [int](($At - [DateTime]::UtcNow.Ticks) / 1e4) - $GlideMs; if ($wait -gt 0) { Start-Sleep -Milliseconds $wait; $pt = Get-DemoElementCenter $el } }
             [DemoKit.Win32Input]::Glide($pt.X, $pt.Y, $GlideMs)
             Write-DemoAction 'move' @{ rect = $pt.Rect }
+            $script:LastLand = [DateTime]::UtcNow.Ticks
             if ($do -eq 'hover') { break }
             if ($do -eq 'double_click') { [DemoKit.Win32Input]::DoubleClick() } else { [DemoKit.Win32Input]::Click(($do -eq 'right_click')) }
-            $script:LastClick = [DateTime]::UtcNow.Ticks
+            $script:LastClick = [DateTime]::UtcNow.Ticks; $script:LastLand = $script:LastClick
             Write-DemoAction 'click' @{ rect = $pt.Rect }
             if ($do -eq 'type') {
                 Start-Sleep -Milliseconds 150
@@ -297,15 +316,18 @@ function Invoke-DemoAction($Window, $Action, [int]$GlideMs = 700, [long]$At = 0)
             }
         }
         'key' {
-            $spec = ([string]$Action.keys) -replace '\+\+$', '+Plus'   # "Ctrl++" means Ctrl and the plus key
+            $spec = ([string]$Action.keys).Trim(); if ($spec -eq '+') { $spec = 'Plus' }
+            $spec = $spec -replace '\+\+$', '+Plus'   # "Ctrl++" means Ctrl and the plus key
+            $needShift = $false
             $keys = @($spec.Split('+') | ForEach-Object {
                 $k = $_.Trim()
                 if ($VK.ContainsKey($k)) { $VK[$k] }
                 elseif ($k -match '^(?i)F([1-9]|1[0-2])$') { 0x6F + [int]$matches[1] }
                 elseif ($k -match '^(?i)(Esc|Escape)$') { 0x1B }
                 elseif ($k.Length -eq 1 -and $k -match '[A-Za-z0-9]') { [int][char]$k.ToUpper() }
-                elseif ($k.Length -eq 1) { [DemoKit.Win32Input]::VkFor([char]$k) }   # punctuation: ask the keyboard layout
+                elseif ($k.Length -eq 1) { $scan = [DemoKit.Win32Input]::VkScan([char]$k); if ($scan -band 0x100) { $needShift = $true }; $scan -band 0xFF }   # punctuation: ask the keyboard layout (Shift if the character needs it)
                 else { throw "Unknown key '$k'. Use names like Ctrl, Shift, Alt, Enter, Tab, Esc, F1-F12, Up, PageDown, Plus, or a single character." } })
+            if ($needShift -and $keys -notcontains $VK.Shift) { $keys = @($VK.Shift) + $keys }
             if ($keys.Count -eq 1) { [DemoKit.Win32Input]::KeyPress($keys[0]) } else { [DemoKit.Win32Input]::Chord([uint16[]]$keys) }
             Write-DemoAction 'key' @{ keys = $Action.keys }
         }

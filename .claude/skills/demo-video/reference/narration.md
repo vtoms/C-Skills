@@ -1,6 +1,6 @@
 # Narration playbook
 
-How the narration of a software demo is written. Apply while writing, then self-check every scene. Distilled from the research catalogue in the C-Skills repository (`docs/research/demo-video/features.md`).
+How the narration of a software demo is written. Apply while writing, then self-check every scene.
 
 ## Structure
 1. **Cold open (5-10 s, over the title card or first scene):** product, who it is for, the pain it removes, then a one-line agenda ("I'll show you X, then Y").

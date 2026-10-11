@@ -83,7 +83,7 @@ namespace DemoKit
                             if ((flags & 0x4) == 0 && qpc > 0)   // 0x4: timestamp error
                             {
                                 long at = (long)(((long)qpc - qpcStart) * (double)SampleRate / 10000000.0);
-                                if (at > written + SampleRate / 200) { bw.Write(new byte[(int)(at - written) * Channels * 2]); written = at; }
+                                if (at > written + SampleRate / 20) { bw.Write(new byte[(int)(at - written) * Channels * 2]); written = at; }
                             }
                             for (int i = 0; i < n; i++)
                             {

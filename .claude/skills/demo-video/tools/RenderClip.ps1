@@ -13,13 +13,14 @@
 # Effects (storyboard scene "effects"), timed to words:
 #   { "type": "zoom|highlight|spotlight|marker|underline|callout", "target": {name,id,type,index} | "rect": {x,y,w,h},
 #     "at_word": 3, "until_word": 7, "scale": 1.4 }
+[CmdletBinding(PositionalBinding = $false)]
 param(
     [string]$Dir = 'demo',
     [string[]]$Scenes,
     [switch]$Force
 )
 $ErrorActionPreference = 'Stop'
-if ($Scenes) { $Scenes = @($Scenes | ForEach-Object { $_ -split '[,\s]+' } | Where-Object { $_ }) }   # 's02,s05' arrives as one string through -File
+if ($Scenes) { $Scenes = @($Scenes | ForEach-Object { $_ -split '[,\s]+' } | Where-Object { $_ }) }   # pass "s02,s05": through -File it arrives as one string
 Import-Module (Join-Path $PSScriptRoot 'DemoKit.psm1') -Force
 [void][Windows.Media.MediaProperties.MediaEncodingProfile, Windows.Media.MediaProperties, ContentType = WindowsRuntime]
 [void][Windows.Media.Transcoding.TranscodeFailureReason, Windows.Media.Transcoding, ContentType = WindowsRuntime]
@@ -104,8 +105,9 @@ function Get-CaptionChunks($Take) {
     # A last chunk of one or two words reads as an orphan: join it to the chunk before when the result still fits.
     if ($chunks.Count -ge 2) {
         $lastC = $chunks[-1]; $prevC = $chunks[-2]
-        if (@($lastC.text -split '\s+').Count -le 2 -and ($prevC.text.Length + $lastC.text.Length) -le 64) {
-            $prevC.text = ($prevC.text + ' ' + $lastC.text).Trim(); $prevC.end = $lastC.end; $chunks = @($chunks[0..($chunks.Count - 2)])
+        if (@($lastC.text -split '\s+').Count -le 2 -and ($prevC.text.Length + $lastC.text.Length) -le 64 -and ($lastC.start - $prevC.end) -le 0.45) {
+            $sep = if ($lastC.text -match '^[\.\,\!\?;:]') { '' } else { ' ' }
+            $prevC.text = ($prevC.text + $sep + $lastC.text).Trim(); $prevC.end = $lastC.end; $chunks = @($chunks[0..($chunks.Count - 2)])
         }
     }
     for ($c = 0; $c -lt $chunks.Count; $c++) { $chunks[$c].end = if ($c + 1 -lt $chunks.Count -and $chunks[$c + 1].start - $chunks[$c].end -lt 0.6) { $chunks[$c + 1].start } else { $chunks[$c].end + 0.4 } }
@@ -128,7 +130,9 @@ foreach ($scene in $targets) {
     if ($entry.record_hash -ne (Get-DemoSceneRecordHash $scene $project)) { Write-Warning "${id}: the storyboard changed since this take (narration or actions); the clip uses the old take. Re-record to update it." }
     $sw = [Diagnostics.Stopwatch]::StartNew()
     $cap = $take.capture
-    $H = [int]([math]::Round($W * $cap.height / $cap.width / 2) * 2)
+    if ($cap.view -and $project.crop -ne 'screen') { $bx = [double]$cap.view.x; $by = [double]$cap.view.y; $bw = [double]$cap.view.w; $bh = [double]$cap.view.h }
+    else { $bx = 0.0; $by = 0.0; $bw = [double]$cap.width; $bh = [double]$cap.height }
+    $H = [int]([math]::Round($W * $bh / $bw / 2) * 2)
     $vs = [long]$take.voice_start
     function SecOf([long]$ticks) { ($ticks - $vs) / 1e7 }   # seconds from the narration start
 
@@ -191,32 +195,33 @@ foreach ($scene in $targets) {
         $from = if ($k -eq 0) { $sceneFrom } else { $f.t }
         $to = if ($k + 1 -lt $frames.Count) { $frames[$k + 1].t } else { $sceneTo }
         if (& $inCut $from) { $afterCut = $true; continue }
-        while ($pq -lt $pauseQueue.Count -and $pauseQueue[$pq].at -le $from) {
-            $plan.Add([pscustomobject]@{ frame = $f; src = $from; dur = $pauseQueue[$pq].sec; kind = 'pause'; blend = $false }); $pq++
+        while ($pq -lt $pauseQueue.Count -and $pauseQueue[$pq].at -lt $to) {
+            # Narration time stands still just before this frame, so captions and effects keep the preceding state.
+            $plan.Add([pscustomobject]@{ frame = $f; src = $from; tn = [math]::Min($from, $pauseQueue[$pq].at) - 0.08; dur = $pauseQueue[$pq].sec; kind = 'pause'; blend = $false }); $pq++   # clear of the caption lookup's 0.05 s lead
         }
         $fz = & $frozenAt $from
         $useFrame = $f
         if ($null -ne $fz) { $useFrame = ($frames | Where-Object { $_.t -le $fz } | Select-Object -Last 1); if (-not $useFrame) { $useFrame = $f } }
-        $plan.Add([pscustomobject]@{ frame = $useFrame; src = $(if ($null -ne $fz) { $fz } else { $from }); dur = [math]::Max(0.001, $to - $from); kind = 'play'; blend = $afterCut; audioFrom = $from })
+        $plan.Add([pscustomobject]@{ frame = $useFrame; src = $(if ($null -ne $fz) { $fz } else { $from }); tn = $from; dur = [math]::Max(0.001, $to - $from); kind = 'play'; blend = $afterCut; audioFrom = $from })
         $afterCut = $false
     }
 
     # --- Effects: resolve targets, compute envelopes per output frame ---
-    $fx = @()
+    $fx = @(); $skippedFx = @()
     foreach ($e in @($scene.effects)) {
         if (-not $e) { continue }
         $cue = Get-WordTime $take $e 'start'
         $phraseEnd = Get-WordTime $take $e 'end'
         if ($e.at_app_audio) {
             # Runs while the app itself is speaking (e.g. a chat agent's spoken answer).
-            if (-not $appLoud) { Write-Warning "${id}: $($e.type) is timed to the app's audio, but the take has none; effect skipped."; continue }
+            if (-not $appLoud) { Write-Warning "${id}: $($e.type) is timed to the app's audio, but the take has none; effect skipped."; $skippedFx += "$($e.type): no app audio"; continue }
             $cue = ($appLoud | Measure-Object -Minimum).Minimum; $phraseEnd = ($appLoud | Measure-Object -Maximum).Maximum
         }
         $rect = Resolve-TargetRect $take $e $cue
-        if (-not $rect) { continue }
-        $vx = [math]::Max(0, [math]::Min($rect.x + $rect.w, $cap.x + $cap.width) - [math]::Max($rect.x, $cap.x))
-        $vy = [math]::Max(0, [math]::Min($rect.y + $rect.h, $cap.y + $cap.height) - [math]::Max($rect.y, $cap.y))
-        if ($rect.w * $rect.h -le 0 -or ($vx * $vy) / ($rect.w * $rect.h) -lt 0.6) { Write-Warning "${id}: $($e.type) target is mostly off-screen at word $($e.at_word); effect skipped. Scroll it into view first or pick another target."; continue }
+        if (-not $rect) { $skippedFx += "$($e.type) at word $($e.at_word): target not found"; continue }
+        $vx = [math]::Max(0, [math]::Min($rect.x + $rect.w, $cap.x + $bx + $bw) - [math]::Max($rect.x, $cap.x + $bx))
+        $vy = [math]::Max(0, [math]::Min($rect.y + $rect.h, $cap.y + $by + $bh) - [math]::Max($rect.y, $cap.y + $by))
+        if ($rect.w * $rect.h -le 0 -or ($vx * $vy) / ($rect.w * $rect.h) -lt 0.6) { Write-Warning "${id}: $($e.type) target is mostly off-screen at word $($e.at_word); effect skipped. Scroll it into view first or pick another target."; $skippedFx += "$($e.type) at word $($e.at_word): off-screen"; continue }
         $def = switch ($e.type) {
             'zoom'      { @{ lead = 0.6; in = 0.75; out = 0.9; tail = 0.4; min = 1.5 } }
             'highlight' { @{ lead = 0.0; in = 0.22; out = 0.2; tail = 0.3; min = 1.0 } }
@@ -235,22 +240,23 @@ foreach ($scene in $targets) {
     # Zoom camera: chained zooms closer than 1.5 s pan directly instead of zooming out and back in.
     $zooms = @($fx | Where-Object { $_.type -eq 'zoom' } | Sort-Object from)
     foreach ($zm in $zooms) {
-        $fit = [math]::Min($cap.width / ($zm.rect.w * 1.15), $cap.height / ($zm.rect.h * 1.15))
-        $applied = [math]::Max(1.0, [math]::Min([math]::Min($zm.scale, $fit), [math]::Max(1.0, $cap.width / $W) * 1.25))
+        $fit = [math]::Min($bw / ($zm.rect.w * 1.15), $bh / ($zm.rect.h * 1.15))
+        $resCap = [math]::Max(1.0, $bw / $W) * 1.25
+        $applied = [math]::Max(1.0, [math]::Min([math]::Min($zm.scale, $fit), $resCap))
         $zm | Add-Member -Force applied ([math]::Round($applied, 2))
-        if ($applied -lt 1.1) { Write-Warning ("{0}: zoom on a {1}x{2} px target can only reach {3:N2}x (it must stay in frame); zoom on something smaller." -f $id, [int]$zm.rect.w, [int]$zm.rect.h, $applied) }
-        elseif ($applied -gt ($cap.width / $W) * 1.05) { Write-Warning ("{0}: zoom {1:N2}x enlarges past the captured pixels (slightly softer)." -f $id, $applied) }
+        if ($applied -lt 1.1) { Write-Warning ("{0}: zoom on a {1}x{2} px target can only reach {3:N2}x (the target must stay in frame); zoom on something smaller." -f $id, [int]$zm.rect.w, [int]$zm.rect.h, $applied) }
+        elseif ($applied -lt $zm.scale - 0.05) { Write-Warning ("{0}: zoom {1:N2}x reduced to {2:N2}x ({3})." -f $id, $zm.scale, $applied, $(if ($fit -lt $resCap) { 'the target must stay in frame' } else { 'limited by the captured resolution' })) }
     }
     function Get-Camera([double]$t) {
-        $full = @{ cx = $cap.width / 2; cy = $cap.height / 2; s = 1.0 }
+        $full = @{ cx = $bx + $bw / 2; cy = $by + $bh / 2; s = 1.0 }
         $state = $full
         for ($z = 0; $z -lt $zooms.Count; $z++) {
             $zm = $zooms[$z]; $next = if ($z + 1 -lt $zooms.Count) { $zooms[$z + 1] } else { $null }; $prev = if ($z -gt 0) { $zooms[$z - 1] } else { $null }
             $chainIn = $prev -and ($zm.from - $prev.to) -lt 1.5
             $chainOut = $next -and ($next.from - $zm.to) -lt 1.5
             $target = @{ cx = $zm.rect.x + $zm.rect.w / 2 - $cap.x; cy = $zm.rect.y + $zm.rect.h / 2 - $cap.y
-                         s = [math]::Max(1.0, [math]::Min($zm.scale, [math]::Min($cap.width / ($zm.rect.w * 1.15), $cap.height / ($zm.rect.h * 1.15)))) }
-            $target.s = [math]::Min($target.s, [math]::Max(1.0, $cap.width / $W) * 1.25)   # at most 25% past the captured pixels
+                         s = [math]::Max(1.0, [math]::Min($zm.scale, [math]::Min($bw / ($zm.rect.w * 1.15), $bh / ($zm.rect.h * 1.15)))) }
+            $target.s = [math]::Min($target.s, [math]::Max(1.0, $bw / $W) * 1.25)   # at most 25% past the captured pixels
             if ($target.s -lt 1.0) { $target.s = 1.0 }
             if ($t -lt $zm.from) { continue }
             $inEnd = $zm.from + $zm.in; $outStart = $zm.to - $zm.out
@@ -261,13 +267,13 @@ foreach ($scene in $targets) {
             else { $state = if ($chainOut) { $target } else { $full } }
             $prevTarget = $target
         }
-        $cw = $cap.width / $state.s; $ch = $cap.height / $state.s
-        @{ x = [math]::Max(0, [math]::Min($cap.width - $cw, $state.cx - $cw / 2)); y = [math]::Max(0, [math]::Min($cap.height - $ch, $state.cy - $ch / 2)); w = $cw; h = $ch }
+        $cw = $bw / $state.s; $ch = $bh / $state.s
+        @{ x = [math]::Max($bx, [math]::Min($bx + $bw - $cw, $state.cx - $cw / 2)); y = [math]::Max($by, [math]::Min($by + $bh - $ch, $state.cy - $ch / 2)); w = $cw; h = $ch }
     }
 
     $chunks = @(Get-CaptionChunks $take)   # always made (for the .srt); burned in only when captions are on
     $capPos = if ($scene.caption_position) { [string]$scene.caption_position } else { 'auto' }
-    $bottomBusy = @($take.actions | Where-Object { $_.target } | ForEach-Object { $_ }).Count -gt 0 -and @($clicks | Where-Object { ($_.y - $cap.y) -gt $cap.height * 0.76 }).Count -gt 0
+    $bottomBusy = @($take.actions | Where-Object { $_.target } | ForEach-Object { $_ }).Count -gt 0 -and @($clicks | Where-Object { ($_.y - $cap.y - $by) -gt $bh * 0.76 }).Count -gt 0
     $captionTop = ($capPos -eq 'top') -or ($capPos -eq 'auto' -and $bottomBusy)
     $cropWarned = $false
     $renderDir = Join-Path $clipDir '_frames'
@@ -276,7 +282,7 @@ foreach ($scene in $targets) {
     $timeline = New-Object System.Collections.Generic.List[object]
     $clock = 0.0; $lastDst = $null; $blendLeft = 0.0
     for ($n = 0; $n -lt $plan.Count; $n++) {
-        $o = $plan[$n]; $t = [double]$o.src
+        $o = $plan[$n]; $t = [double]$o.tn; $tf = [double]$o.src   # t: narration time (captions, effects, camera); tf: picture time
         $j = New-Object DemoKit.FrameJob
         $j.Src = Join-Path $takeDir ('f{0:D6}.jpg' -f $o.frame.i)
         $j.Dst = Join-Path $renderDir ('o{0:D5}.jpg' -f $n)
@@ -296,17 +302,17 @@ foreach ($scene in $targets) {
         if ($list.Count) { $j.Effects = $list.ToArray() }
         if ($o.frame.cv -eq 1 -and $o.frame.cx -ge 0) { $j.CursorX = $o.frame.cx - $cap.x; $j.CursorY = $o.frame.cy - $cap.y; $j.CursorKind = $(if ($o.frame.ck -ge 0 -and $o.frame.ck -le 3) { $o.frame.ck } else { 0 }) }
         $j.CaptionTop = $captionTop
-        $recent = $clicks | Where-Object { $_.t -le $t -and $t - $_.t -lt 0.45 } | Select-Object -Last 1
+        $recent = $clicks | Where-Object { $_.t -le $tf -and $tf - $_.t -lt 0.45 } | Select-Object -Last 1
         if ($recent -and $o.kind -eq 'play') {
-            $j.RippleX = $recent.x - $cap.x; $j.RippleY = $recent.y - $cap.y; $j.RippleT = ($t - $recent.t) / 0.45
+            $j.RippleX = $recent.x - $cap.x; $j.RippleY = $recent.y - $cap.y; $j.RippleT = ($tf - $recent.t) / 0.45
             if (-not $cropWarned -and ($j.RippleX -lt $cam.x -or $j.RippleX -gt $cam.x + $cam.w -or $j.RippleY -lt $cam.y -or $j.RippleY -gt $cam.y + $cam.h)) {
-                Write-Warning ("{0}: a click at {1:N1}s happens outside the zoomed view; end the zoom earlier or zoom on an area that includes it." -f $id, $t); $cropWarned = $true }
+                Write-Warning ("{0}: a click at {1:N1}s happens outside the zoomed view; end the zoom earlier or zoom on an area that includes it." -f $id, $tf); $cropWarned = $true }
         }
         if ($chunks -and $captionsOn) { $cc = $chunks | Where-Object { $t -ge $_.start - 0.05 -and $t -lt $_.end } | Select-Object -First 1; if ($cc) { $j.Caption = $cc.text } }
         # Crossfade 0.25 s across every cut so nothing jumps.
         if ($o.blend -and $lastDst) { $blendFrom = $lastDst; $blendLeft = 0.25 }
         if ($blendLeft -gt 0) { $j.Blend = $blendFrom; $j.BlendAlpha = [math]::Max(0, $blendLeft / 0.25); $blendLeft -= $o.dur }
-        $jobs.Add($j); $timeline.Add([pscustomobject]@{ file = $j.Dst; out = $clock; dur = $o.dur; src = $t; kind = $o.kind; audioFrom = $o.audioFrom })
+        $jobs.Add($j); $timeline.Add([pscustomobject]@{ file = $j.Dst; out = $clock; dur = $o.dur; src = $tf; tn = $t; kind = $o.kind; audioFrom = $o.audioFrom })
         $clock += $o.dur
         if ($blendLeft -le 0) { $lastDst = $j.Dst }
     }
@@ -361,7 +367,7 @@ foreach ($scene in $targets) {
     if ("$result" -ne 'None') { throw "${id}: render failed: $result" }
 
     # Clip captions (clip-relative times), first/last frames for transitions, and the record of how it was made.
-    $srt = @(); $toOut = { param($src) foreach ($e in $timeline) { if ($e.kind -eq 'play' -and $src -ge $e.src - 0.001 -and $src -lt $e.src + $e.dur) { return $e.out + ($src - $e.src) } }; $null }
+    $srt = @(); $toOut = { param($src) foreach ($e in $timeline) { if ($e.kind -eq 'play' -and $src -ge $e.tn - 0.001 -and $src -lt $e.tn + $e.dur) { return $e.out + ($src - $e.tn) } }; $null }
     foreach ($c in $chunks) { $a = & $toOut $c.start; $b = & $toOut ([math]::Max($c.start, $c.end - 0.01)); if ($null -ne $a -and $null -ne $b) { $srt += [pscustomobject]@{ text = $c.text; start = [math]::Round($a, 3); end = [math]::Round($b + 0.01, 3) } } }
     Copy-Item $timeline[0].file (Join-Path $clipDir "$($entry.take)-$renderHash.first.jpg") -Force
     Copy-Item $timeline[$timeline.Count - 1].file (Join-Path $clipDir "$($entry.take)-$renderHash.last.jpg") -Force
@@ -374,6 +380,8 @@ foreach ($scene in $targets) {
             [ordered]@{ type = $_.type; clip_from = $(& $toOut $_.from); clip_mid = $mid; clip_to = $(& $toOut $_.to); scale_applied = $_.applied; source_from = [math]::Round($_.from, 2); source_to = [math]::Round($_.to, 2); rect = $_.rect } })
         clicks = @($clicks | ForEach-Object { $ct = & $toOut $_.t; if ($null -ne $ct) { [math]::Round($ct, 2) } })
         caption_position = $(if ($captionTop) { 'top' } else { 'bottom' })
+        pauses_in_clip = @($timeline | Where-Object { $_.kind -eq 'pause' } | ForEach-Object { [ordered]@{ at = [math]::Round($_.out, 2); seconds = [math]::Round($_.dur, 2) } })
+        skipped_effects = $skippedFx
         captions = $srt; inputs = $post
     }
     Write-DemoJson $info (Join-Path $clipDir "$($entry.take)-$renderHash.json")

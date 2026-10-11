@@ -26,6 +26,7 @@ $fade = if ($NoTransitions) { 0 } else { 0.4 }
 $sw = [Diagnostics.Stopwatch]::StartNew()
 # Bring clips up to date first, so changed effects, edits or settings are never stitched from an old clip.
 if (-not $NoRender) { & (Join-Path $PSScriptRoot 'RenderClip.ps1') -Dir $Dir | Out-Host; $manifest = Read-DemoManifest $Dir }
+else { Write-Warning '-NoRender: clips are used as they are; changed effects, edits or settings are not picked up.' }
 
 # Every scene needs an up-to-date clip.
 $problems = @(); $items = @()
@@ -40,6 +41,8 @@ foreach ($s in $board.scenes) {
 }
 if ($problems) { throw ("Not ready to stitch:`n  " + ($problems -join "`n  ") + "`nRun RenderClip.ps1 (and Record.ps1 for stale scenes) first.") }
 $W = [int]$items[0].info.width; $H = [int]$items[0].info.height
+$skippedAll = @($items | ForEach-Object { $sid = $_.id; @($_.info.skipped_effects) | Where-Object { $_ } | ForEach-Object { "${sid}: $_" } })
+if ($skippedAll) { Write-Warning ("Effects missing from this cut: " + ($skippedAll -join '; ')) }
 
 $work = Join-Path $Dir 'final\_work'; Remove-Item -Recurse -Force $work -ErrorAction SilentlyContinue; New-Item -ItemType Directory -Force $work | Out-Null
 $comp = [Windows.Media.Editing.MediaComposition]::new()
@@ -136,7 +139,7 @@ foreach ($u in $used) {
 Remove-Item -Recurse -Force $work
 
 $record = [ordered]@{ version = $ver; file = (Get-DemoRelativePath $Dir $out); seconds = [math]::Round($back.OriginalDuration.TotalSeconds, 2); planned = [math]::Round($clock, 2)
-                      width = $W; height = $H; transitions = $fade; music = $project.music; title = $board.title; subtitle = $board.subtitle; outro = $board.outro; brand = $project.brand
+                      width = $W; height = $H; transitions = $fade; music = $project.music; title = $board.title; subtitle = $board.subtitle; outro = $board.outro; brand = $project.brand; skipped_effects = $skippedAll
                       clips = $used; made_utc = [DateTime]::UtcNow.ToString('o') }
 Write-DemoJson $record ([IO.Path]::ChangeExtension($out, '.json'))
 $manifest.finals = @(@($manifest.finals) + [pscustomobject]@{ version = $ver; file = $record.file; seconds = $record.seconds; made_utc = $record.made_utc } | Where-Object { $_ })

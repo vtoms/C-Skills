@@ -38,6 +38,7 @@ Never edit `log.jsonl`, `manifest.json` or anything under `takes/` by hand; add 
 | `brand` | `{ "accent": "#RRGGBB", "background_from": "#RRGGBB", "background_to": "#RRGGBB", "font": "Segoe UI" }`. |
 | `music` | Optional `{ "file": "music.mp3", "volume": 0.12 }` (a file the user supplies and has rights to). |
 | `output` | `{ "width": 1920, "name": "acme-demo" }`. |
+| `crop` | Without F11 the video shows only the browser window (inside the screen's work area, so no taskbar). `"screen"` keeps the whole screen. |
 | `replay_earlier` | Default true: scenes that are not being recorded are replayed off-camera, in order, so each recorded scene starts from the right app state. Set false if replaying would repeat a step that must not repeat (then reset state in `pre`). |
 
 Changing `app_url`, `browser`, `monitor`, `fullscreen`, `zoom`, `voice` or `app_audio` makes every take stale.
@@ -52,9 +53,9 @@ Changing `app_url`, `browser`, `monitor`, `fullscreen`, `zoom`, `voice` or `app_
 ```
 
 - `id`: letters, digits, `-`, `_` (it names files). Scene order is the video order.
-- `narration`: what the voice says. `[pause 400ms]` inserts a real pause (the phrases are voiced separately). Word indexes (`at_word`) count the words **as spoken**: run `Test-Storyboard.ps1` after `Record.ps1 -VoiceOnly` to print them (a lexicon respelling can split one word into two).
+- `narration`: what the voice says. `[pause 400ms]` inserts a real pause (the phrases are voiced separately). Each scene's merged word timings are in `audio/<scene>.timing.json`; Test-Storyboard prints them. Word indexes (`at_word`) count the words **as spoken**: run `Test-Storyboard.ps1` after `Record.ps1 -VoiceOnly` to print them (a lexicon respelling can split one word into two).
 - Changing `narration`, `voice`, `pre`, `actions` or a phrase target makes the scene's take stale (re-record that scene). Changing other effects, edits, `caption_position` or brand settings only needs a re-render (Stitch re-renders automatically).
-- `caption_position`: `auto` (default: top when the scene's clicks or an effect are in the bottom band), `top` or `bottom`.
+- `caption_position`: `auto` (default: the whole scene's captions go to the top when a click lands in the bottom quarter; any single frame where an effect sits in the bottom band also moves its caption up), `top` or `bottom`.
 
 ### Targets (how an element is found, through Windows UI Automation)
 
@@ -86,7 +87,7 @@ Timing: `at_word` (index into the spoken words) or `at` (seconds from the narrat
 
 | Effect | Use | Defaults |
 |---|---|---|
-| `zoom` | Push in on a region while it's discussed; chained zooms under 1.5 s apart pan instead | eases in 0.75 s landing on the cue, holds, out 0.9 s; scale 1.25-1.5 (hard cap 2.0). The target plus 15% must fit the frame, so a wide target cannot zoom (RenderClip warns); at most 25% beyond the captured pixels. |
+| `zoom` | Push in on a region while it's discussed; chained zooms under 1.5 s apart pan instead | eases in 0.75 s landing on the cue, holds, out 0.9 s; scale 1.25-1.5 (hard cap 2.0). The target plus 15% must fit the frame, so a wide target cannot zoom; at most 25% beyond the captured pixels (a 1920-wide capture rendered at 1920 tops out at 1.25). RenderClip warns when it reduces a zoom, and the clip JSON shows `scale_applied`. |
 | `highlight` | Outline a control being named | 0.2 s in, until the phrase ends + 0.3 s |
 | `spotlight` | Dim everything else (about 50%) | at most one per scene; not with a zoom deeper than 1.3 |
 | `underline` / `marker` | Draw under / sweep a highlighter across a phrase | for short labels |

@@ -27,7 +27,7 @@ Turns a web app into a professional demo video. This skill runs the whole chain 
 
 ## Toolkit
 The scripts are in `tools/` next to this file (`<tools>` below); every demo-* skill uses them. Run each as
-`powershell -NoProfile -ExecutionPolicy Bypass -File "<tools>\<Script>.ps1" -Dir "<project folder>" ...`
+`powershell -NoProfile -ExecutionPolicy Bypass -File "<tools>\<Script>.ps1" -Dir "<project folder>" ...` (`Still.ps1` and `Preview.ps1` take `-Video <file>` instead; scene lists are comma-separated: `-Scenes "s02,s05"`).
 Recording, rendering and stitching can take longer than one tool call allows (10 minutes): run them in the background, or with the longest timeout, and wait for them to finish.
 
 | Script | Does |
@@ -46,11 +46,11 @@ Schema of `project.json` and `storyboard.json`: `reference/storyboard.md`. Narra
 
 ## 0. Setup
 1. **Project folder:** the argument if it is a folder, else `demo/` in the current repo (ask if unsure). If the argument is a URL, it is the app URL.
-2. **Resuming:** if `project.json` exists, show the saved setup answers and the state in `manifest.json` (scenes with takes and clips, latest final), and ask where to resume. Warn that changing the screen, F11, zoom, browser, app URL, app sound or voice makes every take stale (all scenes must be recorded again).
+2. **Resuming:** if `project.json` exists, show the state in `manifest.json` (scenes with takes and clips, latest final) and **ask the user to confirm or change each saved setup answer** (screen, F11, zoom and the rest). Warn before they change one: a new screen, F11, zoom, browser, app URL, app sound or voice makes every take stale (all scenes must be recorded again). Then ask where to resume.
 3. **New project: ask the setup questions,** all at once:
    - **App URL**, and for an app that needs sign-in, which test account the user will sign in with (they type the password themselves).
    - **Which screen to record?** List them with `powershell -NoProfile -ExecutionPolicy Bypass -Command "Import-Module '<tools>\DemoKit.psm1'; Get-DemoMonitors | Format-Table"`.
-   - **Full screen (F11)?** Hides tabs and the address bar.
+   - **Full screen (F11)?** Hides tabs and the address bar. Without it the video shows just the browser window (the taskbar and other apps are cropped out; `crop: "screen"` keeps the whole screen).
    - **Browser zoom %?** (100 unless the UI is small or dense.)
    - Browser (Edge or Chrome) and profile: `private` (clean, default), `dedicated` (needs sign-in), or `attach` (use a window they opened; ask its title).
    - Does the app make sound worth keeping (a talking agent, alerts)? Sets `app_audio`.

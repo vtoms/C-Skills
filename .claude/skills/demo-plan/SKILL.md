@@ -22,10 +22,10 @@ Tell the user the browser is about to open and the mouse will move. Then:
 It uses the project's browser, screen, zoom, F11 and profile, and stops at the end of the page. For each screen it saves a half-size screenshot (`scout/screen-NN.png`) and the visible elements with their exact accessible names (`scout/screen-NN.json`). Read both.
 
 To explore further (open a panel, go to another page), drive the open window and scout it again:
-- write the steps to a file, e.g. `<project>\scout-steps.json` containing `[{"do":"click","target":{"type":"Button","name":"Settings"}}]`, then `Drive.ps1 -Dir <project> -StepsFile <project>\scout-steps.json`
-- `Scout.ps1 -Attach "<window title*>" -OutDir <project>\scout-settings -Screens 2 -KeepOpen`
+- write the steps to a file, e.g. `<project>\scout-steps.json` containing `[{"do":"click","target":{"type":"Button","name":"Settings"}}]`, then `Drive.ps1 -Dir <project> -StepsFile <project>\scout-steps.json` (it drives the window Scout left open, found by the title saved in `scout\scout.json`, or give `-Attach "<window title*>"`; it scrolls targets into view when needed)
+- `Scout.ps1 -Dir <project> -Attach "<window title*>" -OutDir <project>\scout-settings -Screens 2 -KeepOpen`
 
-Close the window when done. Stop before anything outward-facing (sending, submitting, buying, deleting) and ask.
+Close the window when done (its throwaway profile in `%TEMP%\demo-browser-*` is deleted by the next run an hour or more later; delete it yourself if anyone signed in there). Stop before anything outward-facing (sending, submitting, buying, deleting) and ask.
 
 Note anything that affects recording:
 - pop-ups, and when they appear;

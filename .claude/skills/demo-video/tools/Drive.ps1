@@ -18,6 +18,8 @@ Import-Module (Join-Path $PSScriptRoot 'WinDrive.psm1') -Force
 if ($Dir) {
     $pj = Read-DemoJson (Join-Path (Resolve-Path $Dir).Path 'project.json')
     if (-not $Attach) { $Attach = $pj.window_title }
+    $scoutInfo = Join-Path (Resolve-Path $Dir).Path 'scout\scout.json'
+    if (-not $Attach -and (Test-Path $scoutInfo)) { $Attach = [string](Read-DemoJson $scoutInfo).title }   # the window Scout opened
     if (-not $Browser -and $pj.browser) { $Browser = $pj.browser }
 }
 if (-not $Browser) { $Browser = 'msedge' }
@@ -25,6 +27,7 @@ if (-not $Attach) { throw 'Give -Attach "<window title pattern>" (or a project w
 $w = Get-DemoBrowserWindow $Browser $Attach
 if (-not $w) { throw "No open $Browser window titled '$Attach'. Open it first (Scout.ps1 -KeepOpen or Open.ps1)." }
 [void][DemoKit.Win32Input]::Activate([IntPtr]$w.Current.NativeWindowHandle)
+Set-DemoAutoScroll $true   # exploring: bring targets into view when needed
 if ($StepsFile) { $Steps = [IO.File]::ReadAllText((Resolve-Path $StepsFile).Path) }
 if (-not $Steps) { throw 'Give -StepsFile <file with a JSON array of steps>.' }
 $list = @(($Steps | ConvertFrom-Json) | ForEach-Object { $_ })   # PowerShell 5.1 returns a JSON array as one object: unroll it

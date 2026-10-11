@@ -73,7 +73,7 @@ $pointer = 'click', 'double_click', 'right_click', 'hover', 'type'
 $known = $pointer + 'key', 'scroll', 'navigate', 'wait', 'wait_audio'
 $risky = '(?i)\b(delete|remove|destroy|drop|pay|purchase|buy|checkout|send|submit|publish|post|transfer|unsubscribe|deactivate|reset)\b'
 $audioDir = Join-Path $Dir 'audio'
-$script:callouts = 0; $script:wordMaps = @()
+$script:callouts = 0; $script:wordMaps = @(); $script:unvoiced = @()
 $total = 0.0
 
 foreach ($s in $scenes) {
@@ -92,6 +92,7 @@ foreach ($s in $scenes) {
         if ($m.narration -eq $plain.Trim()) { $times = @($m.words | ForEach-Object { [double]$_.start }); $dur = [double]$m.duration }
     }
     $estimated = -not $times
+    if ($estimated) { $script:unvoiced += $sid }
     if ($estimated) { $times = @(for ($i = 0; $i -lt $words.Count; $i++) { $i / 2.3 }); $dur = $words.Count / 2.3 + 0.4 }
     $pauseSec = 0.0; foreach ($pm in [regex]::Matches([string]$s.narration, '\[pause\s+(\d+)\s*ms\]', 'IgnoreCase')) { $pauseSec += [double]$pm.Groups[1].Value / 1000 }
     $wps = $times.Count / [math]::Max(0.1, $dur - $pauseSec)   # deliberate pauses do not count against the pace
@@ -146,7 +147,7 @@ foreach ($s in $scenes) {
     }
     $sceneLen = [math]::Max(0.4 + $dur + 0.7, $clock + 0.4)
     $appTalk = 0.0; foreach ($a in @($s.actions)) { if ($a.do -eq 'wait_audio') { $appTalk += $(if ($a.expect_seconds) { [double]$a.expect_seconds } else { 6.8 }) } }
-    if (-not $estimated -and -not $Quiet) { $script:wordMaps += "  ${sid} words: " + ((0..($times.Count - 1) | ForEach-Object { "$_=$(@($m.words)[$_].text)" }) -join ' ') }
+    if (-not $estimated -and -not $Quiet) { $script:wordMaps += "  ${sid} words: " + ((0..($times.Count - 1) | ForEach-Object { "$_=$(@($m.words)[$_].text)@$([math]::Round([double]@($m.words)[$_].start, 2))" }) -join ' ') }
     if ($clock - $appTalk -gt $dur + 2) { Warn ("{0}: actions run {1:N1}s past the narration (dead air). Add narration or trim actions." -f $sid, ($clock - $appTalk - $dur)) }
     if ($s.zoom) { Err ("{0}: 'zoom' was replaced by the 'effects' list, e.g. effects: [ {{ type: 'zoom', target: {{...}}, at_word: 3 }} ]." -f $sid) }
     $moveCount = 0
@@ -179,10 +180,17 @@ if ($board.title -and $project.title_card -ne $false) { $total += 2.3 }
 if ($board.outro) { $total += 3.0 }
 if ($script:callouts -gt 2) { Warn "storyboard: $($script:callouts) magnifier callouts; more than two per video gets distracting." }
 
+# Is the current storyboard the one the user approved? (Note.ps1 -Kind approval stores the storyboard's hash.)
+$approval = 'no approval logged yet'
+$logPath = Join-Path $Dir 'log.jsonl'
+if (Test-Path $logPath) {
+    $last = @(Get-Content $logPath | ForEach-Object { try { $_ | ConvertFrom-Json } catch { } } | Where-Object { $_.step -eq 'note' -and $_.kind -eq 'approval' }) | Select-Object -Last 1
+    if ($last) { $approval = if ($last.storyboard_hash -eq (Get-DemoHash ([IO.File]::ReadAllText($boardPath)))) { "approved ($($last.time))" } else { 'CHANGED since the last approval: show the user the changes and log a new approval' } }
+}
 if (-not $Quiet) {
     $errors | ForEach-Object { "ERROR: $_" }
     $warnings | ForEach-Object { "WARN:  $_" }
-    if ($script:wordMaps) { "Word indexes for at_word / until_word (as spoken):"; $script:wordMaps }
-    "{0} scenes, about {1:N0}s of video{2}. {3} errors, {4} warnings." -f $scenes.Count, $total, $(if ($estimated) { ' (timing estimated; run Record.ps1 -VoiceOnly for real timings)' } else { '' }), $errors.Count, $warnings.Count
+    if ($script:wordMaps) { "Word indexes for at_word / until_word (as spoken, with start seconds):"; $script:wordMaps }
 }
+"{0} scenes, about {1:N0}s of video. {2} errors, {3} warnings.{4} Script: {5}." -f $scenes.Count, $total, $errors.Count, $warnings.Count, $(if ($script:unvoiced) { " Not voiced yet (timing estimated): $($script:unvoiced -join ', '); run Record.ps1 -VoiceOnly." } else { '' }), $approval
 if ($errors.Count) { exit 1 }

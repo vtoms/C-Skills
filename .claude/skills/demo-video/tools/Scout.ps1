@@ -41,7 +41,8 @@ if ($Attach) {
     if (-not $Url) { throw 'Give -Url or -Attach.' }
     $w = Start-DemoBrowser $Browser $Url $profileDir '*' -Private:$private
 }
-[void](Initialize-DemoView $w $Monitor ([bool]$FullScreen) $Zoom)
+# An attached window keeps its own zoom, size and F11 state unless the project settings were asked for (-Dir).
+if (-not $Attach -or $Dir) { [void](Initialize-DemoView $w $Monitor ([bool]$FullScreen) $Zoom) } else { [void][DemoKit.Win32Input]::Activate([IntPtr]$w.Current.NativeWindowHandle) }
 Start-Sleep -Milliseconds $SettleMs
 $screen = Get-DemoMonitor $Monitor
 $dx = $null
@@ -60,7 +61,7 @@ for ($i = 1; $i -le $Screens; $i++) {
     Save-Shot $png
     $map = @(Get-DemoElementMap $w 500)
     if ($map.Count) { Write-DemoJson $map (Join-Path $OutDir ('screen-{0:D2}.json' -f $i)) } else { [IO.File]::WriteAllText((Join-Path $OutDir ('screen-{0:D2}.json' -f $i)), '[]') }
-    $sig = ($map | ForEach-Object { "$($_.name)|$($_.y)" }) -join ';'
+    $sig = (($map | ForEach-Object { "$($_.name)|$($_.y)" }) -join ';') + '#' + (Get-FileHash $png -Algorithm MD5).Hash   # elements and pixels both unchanged = page end
     if ($i -gt 1 -and $sig -eq $prevSig) { Remove-Item (Join-Path $OutDir ('screen-{0:D2}.*' -f $i)); Write-Host "Page end reached after $($i - 1) screen(s)."; break }   # scrolling no longer changes anything
     $prevSig = $sig
     $summary += [pscustomobject]@{ screen = $i; png = [IO.Path]::GetFileName($png); elements = $map.Count

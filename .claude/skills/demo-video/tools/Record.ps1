@@ -10,6 +10,7 @@
 # Each take is written to <Dir>/takes/<scene>/<take-id>/ with its frames, action log, page snapshots
 # (UI Automation element maps after every step), and copies of the scene and project settings it used.
 # The manifest points each scene at its newest take; older takes stay for comparison or rollback.
+[CmdletBinding(PositionalBinding = $false)]
 param(
     [string]$Dir = 'demo',
     [string[]]$Scenes,
@@ -19,7 +20,7 @@ param(
     [switch]$KeepBrowser
 )
 $ErrorActionPreference = 'Stop'
-if ($Scenes) { $Scenes = @($Scenes | ForEach-Object { $_ -split '[,\s]+' } | Where-Object { $_ }) }   # 's02,s05' arrives as one string through -File
+if ($Scenes) { $Scenes = @($Scenes | ForEach-Object { $_ -split '[,\s]+' } | Where-Object { $_ }) }   # pass "s02,s05": through -File it arrives as one string
 Import-Module (Join-Path $PSScriptRoot 'WinDrive.psm1') -Force
 $Dir = (Resolve-Path $Dir).Path
 $project = Read-DemoJson (Join-Path $Dir 'project.json')
@@ -38,6 +39,10 @@ $sceneList = @(foreach ($s in $board.scenes) {
     $hash = Get-DemoSceneRecordHash $s $project
     $cur = $manifest.scenes.($s.id)
     $stale = -not $cur -or -not $cur.take -or $cur.record_hash -ne $hash
+    if (-not $stale) {
+        $tj = Join-Path $Dir "takes\$($s.id)\$($cur.take)\take.json"; $tm = Join-Path $Dir "audio\$($s.id).timing.json"
+        if ((Test-Path $tj) -and (Test-Path $tm)) { $tv = (Read-DemoJson $tj).voice; $cv = (Read-DemoJson $tm).voice; if ($tv -and $cv -and $tv -ne $cv) { $stale = $true; Write-Host "$($s.id): take was voiced by '$tv', narration is now '$cv': re-recording." } }
+    }
     if ($Scenes) { if ($s.id -in $Scenes) { $s } }
     elseif ($All -or $Rehearse -or $VoiceOnly -or $stale) { $s }
 })
@@ -158,6 +163,15 @@ if ($mode -eq 'attach') {
     $window = Start-DemoBrowser $browser $project.app_url $profileDir $title -Private:($mode -eq 'private')
 }
 $zoomUsed = Initialize-DemoView $window ([int]$project.monitor) ([bool]$project.fullscreen) ([int]$(if ($project.zoom) { $project.zoom } else { 100 }))
+# The part of the screen the video shows: the browser window inside the monitor's work area (no taskbar), unless full screen.
+$scr = Get-DemoMonitor ([int]$project.monitor)
+$viewRect = $null
+if (-not [bool]$project.fullscreen -and $project.crop -ne 'screen') {
+    $wr = New-Object DemoKit.Win32Input+RECT; [void][DemoKit.Win32Input]::GetWindowRect([IntPtr]$window.Current.NativeWindowHandle, [ref]$wr)
+    $wa = $scr.WorkingArea
+    $vx = [math]::Max($wr.Left, $wa.X); $vy = [math]::Max($wr.Top, $wa.Y); $vr = [math]::Min($wr.Right, $wa.Right); $vb = [math]::Min($wr.Bottom, $wa.Bottom)
+    if ($vr - $vx -gt 200 -and $vb - $vy -gt 200) { $viewRect = [ordered]@{ x = $vx - $scr.Bounds.X; y = $vy - $scr.Bounds.Y; w = $vr - $vx; h = $vb - $vy } }
+}
 Start-Sleep -Milliseconds 800
 
 # --- 3. Capture (separate process for the whole session; frames are split into per-scene takes afterwards) ---
@@ -180,13 +194,14 @@ if (-not $capture) { New-Item -ItemType Directory -Force $session | Out-Null }
 $actionLog = Join-Path $session 'actions.jsonl'
 Set-DemoActionLog $actionLog
 function Assert-CaptureAlive {
-    if ($capture -and $capture.HasExited) { throw 'Screen capture stopped unexpectedly (a UAC prompt, lock screen or display change can do this). Nothing from this run was marked current.' }
+    if ($capture -and $capture.HasExited) { throw 'Screen capture stopped unexpectedly (a UAC prompt, lock screen or display change can do this). Scenes finished before this one are kept.' }
 }
 
 # Off-camera replay of a scene's steps, to rebuild the app state a later scene starts from.
 function Invoke-DemoReplay($Scene) {
     Write-Host "  replaying $($Scene.id) off-camera"
     Set-DemoFindTimeout 20000   # replayed steps run fast, so give slow-loading parts of the app more time
+    Set-DemoAutoScroll $true
     try {
         foreach ($a in @($Scene.pre) + @($Scene.actions)) {
             if (-not $a) { continue }
@@ -194,7 +209,8 @@ function Invoke-DemoReplay($Scene) {
             $fast = $a.PSObject.Copy(); if ($fast.do -eq 'type') { $fast | Add-Member -Force cps 60 }
             try { Invoke-DemoAction $window $fast 250 } catch { if (-not $a.optional) { throw } }
         }
-    } finally { Set-DemoFindTimeout 5000 }
+    } catch { Write-DemoLog $Dir 'replay-failed' @{ scene = $Scene.id; error = "$_" }; throw "Replaying $($Scene.id) off-camera failed: $_" }
+    finally { Set-DemoFindTimeout 5000; Set-DemoAutoScroll $false }
     Start-Sleep -Milliseconds 1000
 }
 
@@ -209,15 +225,22 @@ try {
     for ($k = 0; $k -le $lastIdx; $k++) {
         $s = $allScenes[$k]
         if ($selectedIds -notcontains $s.id) {
-            if (-not $Rehearse -and $project.replay_earlier -ne $false) { [DemoKit.Win32Input]::Activate([IntPtr]$window.Current.NativeWindowHandle) | Out-Null; Invoke-DemoReplay $s; $replayed += $s.id }
+            if ($project.replay_earlier -ne $false) { [DemoKit.Win32Input]::Activate([IntPtr]$window.Current.NativeWindowHandle) | Out-Null; Invoke-DemoReplay $s; $replayed += $s.id }
             continue
         }
         $meta = $voices[$s.id]
         $script:effectTexts = @($s.effects | Where-Object { $_.target.text } | ForEach-Object { [string]$_.target.text } | Select-Object -Unique)
         [DemoKit.Win32Input]::Activate([IntPtr]$window.Current.NativeWindowHandle) | Out-Null
+        $preSkipped = @()
         foreach ($a in @($s.pre)) {   # setup steps: run before the scene, cut from the video
             if (-not $a) { continue }
-            try { Invoke-DemoAction $window $a $glideMs } catch { if (-not $a.optional) { throw }; Write-Host "  (optional step skipped: $($_.Exception.Message))" }
+            try { Invoke-DemoAction $window $a $glideMs } catch { if (-not $a.optional) { throw }; $preSkipped += $a.do; Write-Host "  (optional step skipped: $($_.Exception.Message))" }
+        }
+        # A cursor resting on the browser's toolbar leaves a tooltip on screen: park it inside the page first.
+        $docEl = Get-DemoDocument $window 1500
+        if ($docEl) {
+            $dr = $docEl.Current.BoundingRectangle; $cp = [DemoKit.Win32Input]::CursorPosition()
+            if ($cp.X -lt $dr.Left -or $cp.X -gt $dr.Right -or $cp.Y -lt $dr.Top -or $cp.Y -gt $dr.Bottom) { [DemoKit.Win32Input]::Glide([int]($dr.Left + $dr.Width * 0.62), [int]($dr.Top + $dr.Height * 0.55), 250) }
         }
         Start-Sleep -Milliseconds 300
         $snaps = @(Save-Snapshot $window $true)
@@ -241,7 +264,7 @@ try {
                 $at = $voiceStart + [long]($e.offset * 1e7)
                 if ($e.item.do -in $moves) { Wait-Until ($at - [long]($lookahead * 1e7)) } else { Wait-Until $at }
             }
-            $t0 = [DateTime]::UtcNow.Ticks; $skipped = $false; $clickBefore = Get-DemoLastClick
+            $t0 = [DateTime]::UtcNow.Ticks; $skipped = $false; $clickBefore = Get-DemoLastLand
             if ($e.item.do -eq 'wait_audio') { $heardFor = Wait-DemoAppAudio $e.item; Write-DemoAction 'app_audio' @{ seconds = $heardFor } }
             else {
                 try { Invoke-DemoAction $window $e.item $glideMs $(if ($e.item.do -in $moves) { $at } else { 0 }) }
@@ -249,8 +272,8 @@ try {
             }
             $entry = [ordered]@{ do = $e.item.do; target = $e.item.target; start = $t0; end = [DateTime]::UtcNow.Ticks }
             if ($skipped) { $entry.skipped = $true }
-            elseif ($at -gt 0 -and $e.item.do -in $moves -and $e.item.do -ne 'hover' -and (Get-DemoLastClick) -ne $clickBefore) {
-                $entry.late = [math]::Round(((Get-DemoLastClick) - $at) / 1e7, 2)   # seconds after its word (negative = early)
+            elseif ($at -gt 0 -and $e.item.do -in $moves -and (Get-DemoLastLand) -ne $clickBefore) {
+                $entry.late = [math]::Round(((Get-DemoLastLand) - $at) / 1e7, 2)   # seconds after its word (negative = early)
                 if ([math]::Abs($entry.late) -gt 0.4) { Write-Warning ("{0}: '{1}' landed {2:N2}s off its word" -f $s.id, $e.item.do, $entry.late) }
             }
             $done += $entry
@@ -261,7 +284,8 @@ try {
         $end = [math]::Max($voiceStart + [long](($meta.duration + $Tail) * 1e7), [long]$lastAction + [long]($AfterAction * 1e7))
         Wait-Until $end
         Assert-CaptureAlive
-        $results += [pscustomobject]@{ scene = $s; start = $start; voice_start = $voiceStart; end = $end; actions = $done; snapshots = $snaps; meta = $meta }
+        $results += [pscustomobject]@{ scene = $s; start = $start; voice_start = $voiceStart; end = $end; actions = $done; snapshots = $snaps; meta = $meta; replayed = @($replayed); pre_skipped = $preSkipped }
+        $replayed = @()
         $lates = @($done | Where-Object { $null -ne $_.late } | ForEach-Object { "$($_.do) $('{0:+0.00;-0.00}' -f $_.late)s" })
         '{0}: {1} {2:N2}s ({3} actions{4})' -f $s.id, $(if ($Rehearse) { 'rehearsed' } else { 'recorded' }), (($end - $start) / 1e7), $done.Count, $(if ($lates) { '; landed vs word: ' + ($lates -join ', ') } else { '' })
     }
@@ -288,16 +312,17 @@ foreach ($r in $results) {
     $takeDir = Join-Path $Dir "takes\$id\$takeId"
     if ($Rehearse) { $takeDir = Join-Path $Dir "takes\$id\_rehearsal" ; Remove-Item -Recurse -Force $takeDir -ErrorAction SilentlyContinue }
     New-Item -ItemType Directory -Force $takeDir | Out-Null
-    $n = 0; $firstT = $null; $lastT = $null
+    $n = 0; $firstT = $null; $lastT = $null; $maxGap = 0
     foreach ($f in $frames) {
         if ($f.t -ge $r.start - 1000000 -and $f.t -lt $r.end + 1000000) {   # 0.1 s margin each side
             Move-Item (Join-Path $session ('f{0:D6}.jpg' -f $f.i)) (Join-Path $takeDir ('f{0:D6}.jpg' -f $n))
             Add-Content -Encoding ASCII (Join-Path $takeDir 'frames.tsv') ("$n`t$($f.t)" + $(if ($f.rest) { "`t" + $f.rest } else { '' }))   # keeps the cursor columns
+            if ($null -ne $lastT) { $maxGap = [math]::Max($maxGap, $f.t - $lastT) }
             if ($null -eq $firstT) { $firstT = $f.t }; $lastT = $f.t; $n++
         }
     }
     # A take is usable only if its frames cover the scene (capture may have died or stalled).
-    $covered = $Rehearse -or ($n -gt 1 -and $firstT -le $r.start + 4000000 -and $lastT -ge $r.end - 4000000)
+    $covered = $Rehearse -or ($n -gt 1 -and $firstT -le $r.start + 4000000 -and $lastT -ge $r.end - 4000000 -and $maxGap -le 10000000)
     $sceneActions = @($allActions | Where-Object { $_.t -ge $r.start - 1000000 -and $_.t -lt $r.end + 1000000 })
     $appInfo = $null
     if (-not $Rehearse -and (Test-Path (Join-Path $session 'audio.json'))) {
@@ -306,18 +331,19 @@ foreach ($r in $results) {
             $from = [long]$r.start; $to = [long]$r.end
             [DemoKit.LoopbackCapture]::Slice((Join-Path $session 'app-audio.wav'), [long]$aj.started, (Join-Path $takeDir 'app-audio.wav'), $from, $to)
             $lv = @(Get-Content (Join-Path $session 'levels.tsv') | ForEach-Object { $q = $_.Split("`t"); if ([long]$q[0] -ge $from -and [long]$q[0] -lt $to) { , @([long]$q[0], [double]::Parse($q[1], [Globalization.CultureInfo]::InvariantCulture)) } })
-            $appInfo = [ordered]@{ file = 'app-audio.wav'; start = $from; rate = $aj.rate; channels = 2; levels = $lv }
+            $appInfo = [ordered]@{ file = 'app-audio.wav'; start = $from; rate = $aj.rate; channels = $aj.channels; levels = $lv }
         } elseif ($appAudio) { $covered = $false; Write-Warning "${id}: app audio was not recorded ($($aj.error))." }
     } elseif ($appAudio -and -not $Rehearse) { $covered = $false; Write-Warning "${id}: app audio was not recorded." }
     Write-DemoJson ([ordered]@{
         scene = $id; take = $takeId; rehearsal = [bool]$Rehearse; complete = $covered
         recorded_utc = [DateTime]::new($r.start, [DateTimeKind]::Utc).ToString('o')
         record_hash = (Get-DemoSceneRecordHash $r.scene $project)
-        capture = $(if ($cap) { [ordered]@{ x = $cap.x; y = $cap.y; width = $cap.width; height = $cap.height; fps = $cap.fps; frames = $n; backend = $backend } } else { $null })
+        capture = $(if ($cap) { [ordered]@{ x = $cap.x; y = $cap.y; width = $cap.width; height = $cap.height; fps = $cap.fps; frames = $n; backend = $backend; view = $viewRect } } else { $null })
         start = $r.start; voice_start = $r.voice_start; end = $r.end; lead_in = $LeadIn
         audio = @($r.meta.parts); narration = $r.meta.narration; voice = $r.meta.voice; duration = $r.meta.duration; words = @($r.meta.words)
         actions = @($r.actions); events = $sceneActions; snapshots = @($r.snapshots); app_audio = $appInfo
-        replayed_before = $replayed                                   # scenes replayed off-camera in this run
+        replayed_before = $r.replayed                                 # scenes replayed off-camera just before this one
+        pre_skipped = $r.pre_skipped
         scene_definition = $r.scene                                   # exactly what was recorded
         project_settings = [ordered]@{ app_url = $project.app_url; browser = $browser; profile = $mode; monitor = $project.monitor; fullscreen = $project.fullscreen; zoom = $zoomUsed; fps = $project.fps; voice = $project.voice; app_audio = $appAudio }
     }) (Join-Path $takeDir 'take.json') 30
@@ -334,7 +360,7 @@ Remove-Item -Recurse -Force $session -ErrorAction SilentlyContinue
 $log = @{ scenes = @($results | ForEach-Object { $_.scene.id }); takes = $takeIds; rehearsal = [bool]$Rehearse; seconds = [math]::Round(([DateTime]::UtcNow - $started).TotalSeconds, 1)
           late = @($results | ForEach-Object { $sid = $_.scene.id; $_.actions | Where-Object { $null -ne $_.late } | ForEach-Object { "${sid}:$($_.do)=$($_.late)" } })
           skipped = @($results | ForEach-Object { $sid = $_.scene.id; $_.actions | Where-Object { $_.skipped } | ForEach-Object { "${sid}:$($_.do)" } })
-          replayed = $replayed; incomplete = $incomplete; capture_backend = $backend }
+          replayed = @($results | ForEach-Object { $_.replayed } | Where-Object { $_ }); pre_skipped = @($results | ForEach-Object { $sid = $_.scene.id; $_.pre_skipped | ForEach-Object { "${sid}:$_" } }); incomplete = $incomplete; capture_backend = $backend }
 if ($failed) { $log.failed = [ordered]@{ scene = $(if ($s) { $s.id }); error = "$failed" } }
 Write-DemoLog $Dir $(if ($Rehearse) { 'rehearse' } else { 'record' }) $log
 if ($failed) { throw "Scene $($s.id) failed: $failed. Scenes recorded before it were kept." }
