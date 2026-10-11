@@ -32,6 +32,9 @@ namespace DemoKit
         [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
         [DllImport("user32.dll")] static extern bool IsIconic(IntPtr h);
         [DllImport("user32.dll")] static extern IntPtr LoadCursor(IntPtr inst, int id);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern short VkKeyScan(char ch);
+        // Virtual-key code for a character on the current keyboard layout (for shortcuts like Ctrl+/ ).
+        public static ushort VkFor(char c) { short r = VkKeyScan(c); if (r == -1) throw new ArgumentException("No key for '" + c + "' on this keyboard layout"); return (ushort)(r & 0xFF); }
         delegate bool EnumProc(IntPtr h, IntPtr l);
         [DllImport("user32.dll")] static extern bool EnumChildWindows(IntPtr parent, EnumProc cb, IntPtr l);
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr h, System.Text.StringBuilder sb, int max);

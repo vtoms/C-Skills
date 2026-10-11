@@ -1,12 +1,12 @@
 # Narration playbook
 
-How the narration of a software demo is written. Apply while writing, then self-check every scene. Sources and evidence: `docs/research/demo-video/features.md` in the C-Skills repo.
+How the narration of a software demo is written. Apply while writing, then self-check every scene. Distilled from the research catalogue in the C-Skills repository (`docs/research/demo-video/features.md`).
 
 ## Structure
-1. **Cold open (5-10 s, over the title card or first scene):** product, who it is for, the pain it removes.
+1. **Cold open (5-10 s, over the title card or first scene):** product, who it is for, the pain it removes, then a one-line agenda ("I'll show you X, then Y").
 2. **Orient before acting:** one beat naming where we are before the first click.
 3. **Each feature scene answers the opening pain** and shows the outcome, not just the control.
-4. **Time goes to state changes, not navigation.** Opening plus close is about 15% of the runtime; the most important feature gets the most time.
+4. **Time goes to state changes, not navigation.** Opening and close together take about 15 s of a 5-minute video; the most important feature gets the most time.
 5. **Value close:** end on the strongest proof frame, one-line recap, the user's own call to action.
 
 ## Line rules
@@ -17,7 +17,7 @@ How the narration of a software demo is written. Apply while writing, then self-
 5. **Name controls by their exact on-screen label** in quotes, with a noun ("the "Status" column").
 6. **Don't read the screen aloud:** add why it matters or what happens next; paraphrase long typed text.
 7. **One idea per sentence;** if a scene needs "and" to join two actions, it may be two scenes.
-8. **Present tense, active voice,** "let's" / "you" address. Vary sentence length and connectors; never the same connector twice in a row.
+8. **Present tense, active voice,** "let's" / "you" address. Vary sentence length and connectors; never the same connector twice in a row. One genuine opinion or reaction per video is welcome.
 9. **Concrete over vague:** "in three seconds", not "quickly".
 
 ## Never
@@ -36,6 +36,7 @@ How the narration of a software demo is written. Apply while writing, then self-
 | Core feature | 7-12 s; small tweak 2-4 s |
 | Pause before a reveal | 300-600 ms, at most twice per scene |
 | On-screen text | at most 7 words |
+| Rate change | change `voice.rate` by at most about 6%; rewrite the line instead |
 
 ## Self-check per scene
 - [ ] Pace in range (Test-Storyboard reports it from the real audio).

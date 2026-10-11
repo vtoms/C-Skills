@@ -28,6 +28,7 @@ namespace DemoKit
         public float BlendAlpha;                    // 0..1 opacity of Blend over this frame
         public Effect[] Effects;
         public string Caption;
+        public bool CaptionTop;                     // force the caption to the top band (scene setting or busy bottom)
         public float RippleX = -1, RippleY = -1, RippleT = -1;
         public float CursorX = -1, CursorY = -1;    // source coordinates; drawn after the zoom at constant size
         public int CursorKind;                       // 0 arrow, 1 hand, 2 text, 3 busy
@@ -86,7 +87,7 @@ namespace DemoKit
                 if (!string.IsNullOrEmpty(j.Caption))
                 {
                     // Captions move to the top band when an effect sits where they would go.
-                    bool top = j.Effects != null && j.Effects.Any(e => e.P > 0 && toOut(e.X, e.Y, e.W, e.H).Bottom > outH * 0.78f);
+                    bool top = j.CaptionTop || (j.Effects != null && j.Effects.Any(e => e.P > 0 && toOut(e.X, e.Y, e.W, e.H).Bottom > outH * 0.78f));
                     DrawCaption(g, j.Caption, outW, outH, fontName, top);
                 }
                 SaveJpeg(dst, j.Dst, quality);
@@ -285,6 +286,25 @@ namespace DemoKit
                         SaveJpeg(bmp, string.Format(dstPattern, i), quality);
                     }
                 }
+        }
+
+        // Mean absolute difference (0..255) between consecutive frames on a small grid: finds idle stretches to trim.
+        // Each frame is decoded once, in parallel; result[k] compares frame k-1 with frame k (result[0] = 0).
+        public static double[] Differences(string[] paths)
+        {
+            var thumbs = new byte[paths.Length][];
+            Parallel.For(0, paths.Length, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(2, Environment.ProcessorCount - 1) }, k =>
+            {
+                using (var img = Image.FromFile(paths[k])) using (var s = new Bitmap(img, 96, 60))
+                {
+                    var px = new byte[96 * 60 * 3]; int o = 0;
+                    for (int y = 0; y < 60; y++) for (int x = 0; x < 96; x++) { Color c = s.GetPixel(x, y); px[o++] = c.R; px[o++] = c.G; px[o++] = c.B; }
+                    thumbs[k] = px;
+                }
+            });
+            var d = new double[paths.Length];
+            for (int k = 1; k < paths.Length; k++) { long sum = 0; var a = thumbs[k - 1]; var b = thumbs[k]; for (int i = 0; i < a.Length; i++) sum += Math.Abs(a[i] - b[i]); d[k] = sum / (double)a.Length; }
+            return d;
         }
 
         // Mean absolute difference (0..255) between two frames on a small grid: finds idle stretches to trim.

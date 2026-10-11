@@ -6,7 +6,8 @@
 param(
     [string]$Dir = 'demo',
     [string]$Name,
-    [switch]$NoTransitions
+    [switch]$NoTransitions,
+    [switch]$NoRender      # skip the automatic RenderClip pass (normally it brings every clip up to date first)
 )
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'DemoKit.psm1') -Force
@@ -23,6 +24,8 @@ function ColorOf($hex, [string]$fallback) { $h = if ($hex) { ([string]$hex).Trim
 $colA = ColorOf $project.brand.background_from '181C2C'; $colB = ColorOf $project.brand.background_to '2E408C'
 $fade = if ($NoTransitions) { 0 } else { 0.4 }
 $sw = [Diagnostics.Stopwatch]::StartNew()
+# Bring clips up to date first, so changed effects, edits or settings are never stitched from an old clip.
+if (-not $NoRender) { & (Join-Path $PSScriptRoot 'RenderClip.ps1') -Dir $Dir | Out-Host; $manifest = Read-DemoManifest $Dir }
 
 # Every scene needs an up-to-date clip.
 $problems = @(); $items = @()
@@ -113,10 +116,10 @@ $result = Wait-WinRTProgress ($comp.RenderToFileAsync((New-StorageFile $out), [W
 if ("$result" -ne 'None') { throw "Stitch failed: $result" }
 
 function Fmt([double]$s) { $t = [TimeSpan]::FromSeconds($s); '{0:00}:{1:00}:{2:00},{3:000}' -f [int][math]::Floor($t.TotalHours), $t.Minutes, $t.Seconds, $t.Milliseconds }
-$lines = for ($i = 0; $i -lt $srt.Count; $i++) { ($i + 1); "$(Fmt $srt[$i].start) --> $(Fmt $srt[$i].end)"; $srt[$i].text; '' }
-[IO.File]::WriteAllLines([IO.Path]::ChangeExtension($out, '.srt'), [string[]]$lines, (New-Object Text.UTF8Encoding $false))
-$chap = @('0:00 Intro') + @($chapters | ForEach-Object { $t = [TimeSpan]::FromSeconds([math]::Floor($_.at)); '{0}:{1:00} {2}' -f [int][math]::Floor($t.TotalMinutes), $t.Seconds, $_.title })
-if (-not ($project.title_card -ne $false -and $board.title)) { $chap = $chap | Select-Object -Skip 1; $chap[0] = $chap[0] -replace '^\S+', '0:00' }
+$lines = @(for ($i = 0; $i -lt $srt.Count; $i++) { ($i + 1); "$(Fmt $srt[$i].start) --> $(Fmt $srt[$i].end)"; $srt[$i].text; '' })
+[IO.File]::WriteAllText([IO.Path]::ChangeExtension($out, '.srt'), (($lines | ForEach-Object { "$_" }) -join "`r`n"), (New-Object Text.UTF8Encoding $false))
+$chap = @(@('0:00 Intro') + @($chapters | ForEach-Object { $t = [TimeSpan]::FromSeconds([math]::Floor($_.at)); '{0}:{1:00} {2}' -f [int][math]::Floor($t.TotalMinutes), $t.Seconds, $_.title }))
+if (-not ($project.title_card -ne $false -and $board.title)) { $chap = @($chap | Select-Object -Skip 1); $chap[0] = $chap[0] -replace '^\S+', '0:00' }
 [IO.File]::WriteAllLines([IO.Path]::ChangeExtension($out, '.chapters.txt'), [string[]]$chap, (New-Object Text.UTF8Encoding $false))
 
 # Read back and save review stills (one per scene, 60% through).
@@ -133,7 +136,8 @@ foreach ($u in $used) {
 Remove-Item -Recurse -Force $work
 
 $record = [ordered]@{ version = $ver; file = (Get-DemoRelativePath $Dir $out); seconds = [math]::Round($back.OriginalDuration.TotalSeconds, 2); planned = [math]::Round($clock, 2)
-                      width = $W; height = $H; transitions = $fade; music = $project.music; clips = $used; made_utc = [DateTime]::UtcNow.ToString('o') }
+                      width = $W; height = $H; transitions = $fade; music = $project.music; title = $board.title; subtitle = $board.subtitle; outro = $board.outro; brand = $project.brand
+                      clips = $used; made_utc = [DateTime]::UtcNow.ToString('o') }
 Write-DemoJson $record ([IO.Path]::ChangeExtension($out, '.json'))
 $manifest.finals = @(@($manifest.finals) + [pscustomobject]@{ version = $ver; file = $record.file; seconds = $record.seconds; made_utc = $record.made_utc } | Where-Object { $_ })
 Save-DemoManifest $Dir $manifest

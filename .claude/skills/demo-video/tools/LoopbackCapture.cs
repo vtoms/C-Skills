@@ -64,6 +64,7 @@ namespace DemoKit
                     long written = 0;                                  // frames written so far
                     var sw = Stopwatch.StartNew();
                     StartedUtcTicks = DateTime.UtcNow.Ticks;
+                    long qpcStart = (long)(Stopwatch.GetTimestamp() * (10000000.0 / Stopwatch.Frequency));   // same 100 ns clock as the packets
                     Check(Slot<NoArgFn>(client, 10)(client), "Start");
                     double sumSq = 0; long sumN = 0; long lastLevel = 0;
                     var pcm = new byte[0];
@@ -78,6 +79,12 @@ namespace DemoKit
                             int n = (int)frames * Channels;
                             if (pcm.Length < n * 2) pcm = new byte[n * 2];
                             bool silent = (flags & 0x2) != 0;
+                            // Pad silence up to where this packet belongs on the clock (packets carry their capture time).
+                            if ((flags & 0x4) == 0 && qpc > 0)   // 0x4: timestamp error
+                            {
+                                long at = (long)(((long)qpc - qpcStart) * (double)SampleRate / 10000000.0);
+                                if (at > written + SampleRate / 200) { bw.Write(new byte[(int)(at - written) * Channels * 2]); written = at; }
+                            }
                             for (int i = 0; i < n; i++)
                             {
                                 float v = 0;
@@ -96,7 +103,7 @@ namespace DemoKit
                             Slot<ReleaseBufferFn>(capture, 4)(capture, frames);
                         }
                         // Nothing playing: Windows sends no packets at all, so pad with silence to keep time.
-                        long due = (long)(sw.Elapsed.TotalSeconds * SampleRate) - (SampleRate / 10);   // allow 100 ms of buffering
+                        long due = (long)(sw.Elapsed.TotalSeconds * SampleRate) - (SampleRate * 3 / 10);   // nothing pending for 300 ms: real silence (packets fill their own place)
                         if (due > written)
                         {
                             int pad = (int)(due - written) * Channels * 2;

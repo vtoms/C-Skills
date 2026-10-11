@@ -18,6 +18,33 @@ try { $project = Read-DemoJson $projectPath } catch { Err "project.json is not v
 try { $board = Read-DemoJson $boardPath } catch { Err "storyboard.json is not valid JSON: $($_.Exception.Message)" }
 if ($errors.Count) { $errors | ForEach-Object { "ERROR: $_" }; exit 1 }
 
+# Duplicate keys in one JSON object are silently collapsed by ConvertFrom-Json (the last one wins): find them.
+function Find-DuplicateJsonKeys([string]$Json) {
+    $stack = New-Object System.Collections.Generic.Stack[object]; $dups = @(); $i = 0; $n = $Json.Length; $expectKey = $false
+    while ($i -lt $n) {
+        $ch = $Json[$i]
+        if ($ch -eq '{') { $stack.Push(@{ keys = @{}; isObj = $true }); $expectKey = $true; $i++; continue }
+        if ($ch -eq '[') { $stack.Push(@{ isObj = $false }); $expectKey = $false; $i++; continue }
+        if ($ch -eq '}' -or $ch -eq ']') { [void]$stack.Pop(); $i++; continue }
+        if ($ch -eq ',') { $expectKey = ($stack.Count -and $stack.Peek().isObj); $i++; continue }
+        if ($ch -eq '"') {
+            $j = $i + 1; $sb = New-Object Text.StringBuilder
+            while ($j -lt $n -and $Json[$j] -ne '"') { if ($Json[$j] -eq '\') { [void]$sb.Append($Json[$j]); $j++ }; [void]$sb.Append($Json[$j]); $j++ }
+            $str = $sb.ToString()
+            if ($expectKey -and $stack.Count -and $stack.Peek().isObj) {
+                $keys = $stack.Peek().keys
+                if ($keys.ContainsKey($str)) { $line = ($Json.Substring(0, $i) -split "`n").Count; $dups += "'$str' (line $line)" } else { $keys[$str] = 1 }
+                $expectKey = $false
+            }
+            $i = $j + 1; continue
+        }
+        $i++
+    }
+    $dups
+}
+foreach ($pair in @(@('project.json', $projectPath), @('storyboard.json', $boardPath))) {
+    foreach ($d in @(Find-DuplicateJsonKeys ([IO.File]::ReadAllText($pair[1])))) { Err "$($pair[0]): duplicate key $d; only the last copy is used." }
+}
 # --- project.json ---
 if (-not $project.app_url) { Err 'project.json: app_url is required.' }
 if ($null -eq $project.monitor) { Err 'project.json: monitor is required (ask which screen to record).' }
@@ -30,6 +57,14 @@ if ($project.profile -eq 'attach' -and -not $project.window_title) { Err "projec
 if ($project.voice.engine -and $project.voice.engine -notin 'aria', 'builtin') { Err 'project.json: voice.engine must be aria or builtin.' }
 
 # --- storyboard.json ---
+# Control types must be real UI Automation names (an unknown one would match nothing and fail mid-recording).
+Add-Type -AssemblyName UIAutomationTypes
+$script:knownTypes = @([System.Windows.Automation.ControlType].GetFields('Public,Static') | ForEach-Object Name)
+function Test-Target($Tg, [string]$Sid, [switch]$Effect) {
+    if ($Tg.type -and $script:knownTypes -notcontains [string]$Tg.type) { Err "${Sid}: unknown control type '$($Tg.type)'. Use one of the names shown by Scout (Button, Hyperlink, Edit, Text, Group, ListItem, Document...)." }
+    if ($Tg.pick -and $Tg.pick -notin 'first', 'last', 'top-left', 'top-right', 'bottom-left', 'bottom-right') { Err "${Sid}: pick must be first, last, top-left, top-right, bottom-left or bottom-right." }
+    if ($Effect -and ($Tg.within -or $Tg.pick)) { Err "${Sid}: effect targets support type, name, id, index and text only ('within' and 'pick' are for actions)." }
+}
 $scenes = @($board.scenes)
 if (-not $board.title) { Warn 'storyboard: no title (the title card will be skipped).' }
 if ($scenes.Count -eq 0) { Err 'storyboard: no scenes.' }
@@ -61,7 +96,7 @@ foreach ($s in $scenes) {
     $pauseSec = 0.0; foreach ($pm in [regex]::Matches([string]$s.narration, '\[pause\s+(\d+)\s*ms\]', 'IgnoreCase')) { $pauseSec += [double]$pm.Groups[1].Value / 1000 }
     $wps = $times.Count / [math]::Max(0.1, $dur - $pauseSec)   # deliberate pauses do not count against the pace
     if ($wps -gt 3.1) { Warn ("{0}: narration runs {1:N1} words/s (over 3.1 sounds rushed; aim for 2.2-2.7)." -f $sid, $wps) }
-    if (-not $estimated -and $wps -lt 1.8) { Warn ("{0}: narration runs {1:N1} words/s (slow; aim for 2.2-2.7)." -f $sid, $wps) }
+    if (-not $estimated -and $wps -lt 2.0) { Warn ("{0}: narration runs {1:N1} words/s (slow; aim for 2.2-2.7)." -f $sid, $wps) }
     if ($words.Count -gt 45) { Warn "${sid}: $($words.Count) words in one scene; split it (one idea per scene)." }
     # Narration lint (reference/narration.md): hype words, template openers, dashes, emojis, a bare "pause", tool talk.
     $hype = '(?i)\b(revolutionary|seamless(ly)?|leverage|unlock|powerful|amazing|super easy|game[- ]changing|cutting[- ]edge|effortless(ly)?)\b'
@@ -80,6 +115,7 @@ foreach ($s in $scenes) {
         if ($a.do -notin $known) { Err "${sid}: unknown action '$($a.do)'. Use one of: $($known -join ', ')."; continue }
         if ($a.do -in $pointer -and -not $a.target) { Err "${sid}: '$($a.do)' needs a target." }
         if ($a.target -and -not ($a.target.name -or $a.target.id -or $a.target.type)) { Err "${sid}: a target needs name, id or type." }
+        foreach ($tg in @($a.target, $a.target.within, $a.for) | Where-Object { $_ }) { Test-Target $tg $sid }
         if ($a.do -eq 'type' -and $null -eq $a.text) { Err "${sid}: 'type' needs text." }
         if ($a.do -eq 'key' -and -not $a.keys) { Err "${sid}: 'key' needs keys, e.g. 'Ctrl+K'." }
         if ($a.do -eq 'navigate' -and -not $a.url) { Err "${sid}: 'navigate' needs url." }
@@ -118,6 +154,7 @@ foreach ($s in $scenes) {
         if (-not $e) { continue }
         if ($e.type -notin 'zoom', 'highlight', 'spotlight', 'marker', 'underline', 'callout') { Err "${sid}: unknown effect type '$($e.type)'."; continue }
         if (-not $e.target -and -not $e.rect) { Err "${sid}: effect '$($e.type)' needs a target (name/id/type) or a rect." }
+        if ($e.target -and -not $e.target.text) { Test-Target $e.target $sid -Effect }
         if ($e.at_app_audio -and -not $project.app_audio) { Err "${sid}: at_app_audio needs app_audio: true in project.json." }
         foreach ($f in 'at_word', 'until_word') { if ($null -ne $e.$f -and ([int]$e.$f -lt 0 -or [int]$e.$f -ge $times.Count)) { Err "${sid}: effect $f $($e.$f) is outside 0..$($times.Count - 1)." } }
         if ($null -ne $e.until_word -and $null -ne $e.at_word -and [int]$e.until_word -lt [int]$e.at_word) { Err "${sid}: effect until_word is before at_word." }
@@ -128,11 +165,18 @@ foreach ($s in $scenes) {
         }
         if ($e.type -eq 'callout') { $script:callouts++ }
     }
-    if ($moveCount -gt 2) { Warn "${sid}: $moveCount zooms in one scene; keep one dominant camera move per scene (chained pans count as one)." }
+    foreach ($ed in @($s.edits)) {
+        if (-not $ed) { continue }
+        foreach ($f in 'cut', 'freeze') { if ($ed.$f) { $r = @($ed.$f); if ($r.Count -ne 2 -or [double]$r[1] -le [double]$r[0]) { Err "${sid}: edit '$f' needs [from, to] with to after from (seconds from the narration start)." } } }
+        if ($null -ne $ed.pause -and ([double]$ed.pause -le 0 -or ($null -eq $ed.at_word -and $null -eq $ed.at))) { Err "${sid}: edit 'pause' needs a positive length and at_word or at." }
+        if (-not ($ed.cut -or $ed.freeze -or $null -ne $ed.pause)) { Err "${sid}: an edit needs cut, freeze or pause." }
+    }
+    if ($s.caption_position -and $s.caption_position -notin 'auto', 'top', 'bottom') { Err "${sid}: caption_position must be auto, top or bottom." }    if ($moveCount -gt 2) { Warn "${sid}: $moveCount zooms in one scene; keep one dominant camera move per scene (chained pans count as one)." }
     if (@($s.effects | Where-Object { $_.type -eq 'spotlight' }).Count -gt 1) { Warn "${sid}: more than one spotlight in a scene." }
     $total += $sceneLen
 }
-if ($board.title -and $project.title_card -ne $false) { $total += 2.5 }
+if ($board.title -and $project.title_card -ne $false) { $total += 2.3 }
+if ($board.outro) { $total += 3.0 }
 if ($script:callouts -gt 2) { Warn "storyboard: $($script:callouts) magnifier callouts; more than two per video gets distracting." }
 
 if (-not $Quiet) {

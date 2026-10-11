@@ -103,7 +103,7 @@ function Get-DemoSceneRecordHash($Scene, $Project) {
     Get-DemoHash ([ordered]@{
         narration = $Scene.narration; voice_override = $Scene.voice; pre = $Scene.pre; actions = $Scene.actions
         phrases = @($Scene.effects | Where-Object { $_.target.text } | ForEach-Object { [string]$_.target.text } | Sort-Object -Unique)   # measured during the take; other effect changes never need a new take
-        app_url = $Project.app_url; monitor = $Project.monitor; fullscreen = $Project.fullscreen; zoom = $Project.zoom; browser = $Project.browser; voice = $Project.voice })
+        app_url = $Project.app_url; monitor = $Project.monitor; fullscreen = $Project.fullscreen; zoom = $Project.zoom; browser = $Project.browser; voice = $Project.voice; app_audio = [bool]$Project.app_audio })
 }
 
 function Get-DemoMonitor([int]$Index) {

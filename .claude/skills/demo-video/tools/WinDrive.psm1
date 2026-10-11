@@ -26,15 +26,25 @@ function Write-DemoAction([string]$Kind, [hashtable]$Data = @{}) {
 }
 
 # --- Browser window ---
-function Get-DemoBrowserWindow([string]$Browser = 'msedge', [string]$TitleLike = '*') {
+function Get-DemoBrowserWindow([string]$Browser = 'msedge', [string]$TitleLike = '*', [long[]]$Exclude = @()) {
     # Top-level windows of that browser's processes whose title matches (a process can own several windows).
+    # -Exclude: window handles to ignore (windows that were open before we launched ours).
     $ids = @(Get-Process -Name $Browser -ErrorAction SilentlyContinue | ForEach-Object Id)
     if (-not $ids) { return $null }
     $AE = [System.Windows.Automation.AutomationElement]
     foreach ($w in $AE::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children, [System.Windows.Automation.Condition]::TrueCondition)) {
-        try { if ($ids -contains $w.Current.ProcessId -and $w.Current.Name -like $TitleLike -and $w.Current.Name) { return $w } } catch { }
+        try {
+            if ($ids -contains $w.Current.ProcessId -and $w.Current.Name -like $TitleLike -and $w.Current.Name -and
+                $Exclude -notcontains [long]$w.Current.NativeWindowHandle) { return $w }
+        } catch { }
     }
     $null
+}
+function Get-DemoBrowserWindowHandles([string]$Browser) {
+    $ids = @(Get-Process -Name $Browser -ErrorAction SilentlyContinue | ForEach-Object Id)
+    $AE = [System.Windows.Automation.AutomationElement]
+    @(foreach ($w in $AE::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children, [System.Windows.Automation.Condition]::TrueCondition)) {
+        try { if ($ids -contains $w.Current.ProcessId) { [long]$w.Current.NativeWindowHandle } } catch { } })
 }
 function Start-DemoBrowser([string]$Browser, [string]$Url, [string]$ProfileDir, [string]$TitleLike = '*', [switch]$Private) {
     $candidates = switch ($Browser) {
@@ -46,15 +56,21 @@ function Start-DemoBrowser([string]$Browser, [string]$Url, [string]$ProfileDir, 
     if (-not $exe) { throw "Browser '$Browser' not found." }
     # A separate profile folder keeps takes clean (no sign-in, extensions or leftover state). No debug or special flags:
     # page content is reached through UI Automation exactly as in a browser the user opened (see Enable-DemoPageAccessibility).
-    if (-not $ProfileDir) { $ProfileDir = Join-Path $env:TEMP ("demo-browser-" + [guid]::NewGuid().ToString("N").Substring(0, 8)); $script:ThrowawayProfile = $ProfileDir }
-    $argList = @('--new-window', '--no-first-run', '--disable-session-crashed-bubble', '--no-default-browser-check', "--user-data-dir=$ProfileDir")
+    if (-not $ProfileDir) {
+        Clear-DemoStaleProfiles
+        $ProfileDir = Join-Path $env:TEMP ("demo-browser-" + [guid]::NewGuid().ToString("N").Substring(0, 8)); $script:ThrowawayProfile = $ProfileDir
+    }
+    # Start-Process does not quote array arguments in PowerShell 5.1, so quote paths that may contain spaces.
+    $argList = @('--new-window', '--no-first-run', '--disable-session-crashed-bubble', '--no-default-browser-check', "--user-data-dir=`"$ProfileDir`"")
     # Private window: no account sign-in, no extensions, no leftover state between takes.
     if ($Private) { $argList += $(if ($Browser -eq 'chrome') { '--incognito' } else { '--inprivate' }) }
-    $argList += $Url
+    $argList += "`"$Url`""
+    $name = [IO.Path]::GetFileNameWithoutExtension($exe)
+    $before = Get-DemoBrowserWindowHandles $name   # the user's own windows: never drive or close these
     $p = Start-Process -FilePath $exe -ArgumentList $argList -PassThru
-    $deadline = (Get-Date).AddSeconds(20)
-    do { Start-Sleep -Milliseconds 400; $w = Get-DemoBrowserWindow ([IO.Path]::GetFileNameWithoutExtension($exe)) $TitleLike } while (-not $w -and (Get-Date) -lt $deadline)
-    if (-not $w) { throw "Browser window did not appear within 20 s." }
+    $deadline = (Get-Date).AddSeconds(25)
+    do { Start-Sleep -Milliseconds 400; $w = Get-DemoBrowserWindow $name $TitleLike $before } while (-not $w -and (Get-Date) -lt $deadline)
+    if (-not $w) { throw "The new browser window did not appear within 25 s (title pattern '$TitleLike')." }
     $w
 }
 # Puts the window on the chosen monitor, maximised, optionally F11 full screen, and sets page zoom.
@@ -67,10 +83,11 @@ function Initialize-DemoView($Window, [int]$Monitor = 0, [bool]$FullScreen = $fa
     $ladder = @(25, 33, 50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 250, 300)
     $target = ($ladder | Sort-Object { [math]::Abs($_ - $ZoomPercent) } | Select-Object -First 1)
     for ($attempt = 1; $attempt -le 3; $attempt++) {
-        # A freshly started browser may not have keyboard focus yet: activate, click the page body, then send keys.
+        # A freshly started browser may not have keyboard focus yet: activate it and focus the page (no click, so the
+        # app's state is untouched), then send the zoom and F11 keys, which work anywhere in the browser window.
         [void][DemoKit.Win32Input]::Activate($hwnd); Start-Sleep -Milliseconds 600
         $doc = Get-DemoDocument $Window 4000
-        if ($doc) { $r = $doc.Current.BoundingRectangle; [DemoKit.Win32Input]::Glide([int]($r.X + 12), [int]($r.Y + $r.Height - 12), 150); [DemoKit.Win32Input]::Click($false, 40); Start-Sleep -Milliseconds 200 }
+        if ($doc) { try { $doc.SetFocus() } catch { } ; Start-Sleep -Milliseconds 150 }
         [DemoKit.Win32Input]::Chord(@($VK.Ctrl, $VK.Zero)); Start-Sleep -Milliseconds 250
         $from = $ladder.IndexOf(100); $to = $ladder.IndexOf($target)
         $key = if ($to -gt $from) { $VK.Plus } else { $VK.Minus }
@@ -80,7 +97,8 @@ function Initialize-DemoView($Window, [int]$Monitor = 0, [bool]$FullScreen = $fa
         if ($zoomOk -and $FullScreen) { [DemoKit.Win32Input]::KeyPress($VK.F11); Start-Sleep -Milliseconds 1200 }
         $script:DocCache = @{}
         $rect = New-Object DemoKit.Win32Input+RECT; [void][DemoKit.Win32Input]::GetWindowRect($hwnd, [ref]$rect)
-        $fsNow = ($rect.Left -le $b.X -and $rect.Top -le $b.Y -and $rect.Right -ge $b.Right -and $rect.Bottom -ge $b.Bottom)
+        # F11 full screen covers the monitor exactly; a maximised window overhangs each edge by its frame (about 8-11 px).
+        $fsNow = ([math]::Abs($rect.Left - $b.X) -le 1 -and [math]::Abs($rect.Top - $b.Y) -le 1 -and [math]::Abs($rect.Right - $b.Right) -le 1 -and [math]::Abs($rect.Bottom - $b.Bottom) -le 1)
         $fsOk = $fsNow -eq $FullScreen
         if ($zoomOk -and $fsOk) { break }
         if ($fsNow) { [DemoKit.Win32Input]::KeyPress($VK.F11); Start-Sleep -Milliseconds 1000 }   # leave full screen before retrying
@@ -101,8 +119,15 @@ function Get-DemoBrowserZoom($Window) {
 function Remove-DemoThrowawayProfile {
     if (-not $script:ThrowawayProfile) { return }
     $deadline = [DateTime]::UtcNow.AddSeconds(15)
-    do { Start-Sleep -Milliseconds 500; try { Remove-Item -Recurse -Force $script:ThrowawayProfile -ErrorAction Stop; break } catch { } } while ([DateTime]::UtcNow -lt $deadline)
+    $ok = $false
+    do { Start-Sleep -Milliseconds 500; try { Remove-Item -Recurse -Force $script:ThrowawayProfile -ErrorAction Stop; $ok = $true; break } catch { } } while ([DateTime]::UtcNow -lt $deadline)
+    if (-not $ok) { Write-Warning "Could not delete the throwaway browser profile $($script:ThrowawayProfile) (browser still running?). It is removed automatically on the next run." }
     $script:ThrowawayProfile = $null
+}
+# Removes throwaway profiles left by earlier runs (older than an hour), which may hold the app's session cookies.
+function Clear-DemoStaleProfiles {
+    Get-ChildItem $env:TEMP -Directory -Filter 'demo-browser-*' -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt (Get-Date).AddHours(-1) } |
+        ForEach-Object { try { Remove-Item -Recurse -Force $_.FullName -ErrorAction Stop } catch { } }
 }
 function Exit-DemoFullScreen { [DemoKit.Win32Input]::KeyPress($VK.F11); Start-Sleep -Milliseconds 600 }
 
@@ -183,6 +208,7 @@ function Find-DemoElement($Window, $Target, [int]$TimeoutMs = 5000) {
         Start-Sleep -Milliseconds 250
         $script:DocCache.Remove([string]$Window.Current.NativeWindowHandle)   # the page may have changed: look it up again
         $root = Get-DemoDocument $Window 1500; if (-not $root) { $root = $Window }
+        if ($Target.within) { $inner = Find-DemoElement $Window $Target.within 1000; if ($inner) { $root = $inner } else { continue } }
     } while ([DateTime]::UtcNow -lt $deadline)
     $null
 }
@@ -271,7 +297,15 @@ function Invoke-DemoAction($Window, $Action, [int]$GlideMs = 700, [long]$At = 0)
             }
         }
         'key' {
-            $keys = @(([string]$Action.keys).Split('+') | ForEach-Object { $k = $_.Trim(); if ($VK.ContainsKey($k)) { $VK[$k] } elseif ($k.Length -eq 1) { [int][char]$k.ToUpper() } else { throw "Unknown key '$k'" } })
+            $spec = ([string]$Action.keys) -replace '\+\+$', '+Plus'   # "Ctrl++" means Ctrl and the plus key
+            $keys = @($spec.Split('+') | ForEach-Object {
+                $k = $_.Trim()
+                if ($VK.ContainsKey($k)) { $VK[$k] }
+                elseif ($k -match '^(?i)F([1-9]|1[0-2])$') { 0x6F + [int]$matches[1] }
+                elseif ($k -match '^(?i)(Esc|Escape)$') { 0x1B }
+                elseif ($k.Length -eq 1 -and $k -match '[A-Za-z0-9]') { [int][char]$k.ToUpper() }
+                elseif ($k.Length -eq 1) { [DemoKit.Win32Input]::VkFor([char]$k) }   # punctuation: ask the keyboard layout
+                else { throw "Unknown key '$k'. Use names like Ctrl, Shift, Alt, Enter, Tab, Esc, F1-F12, Up, PageDown, Plus, or a single character." } })
             if ($keys.Count -eq 1) { [DemoKit.Win32Input]::KeyPress($keys[0]) } else { [DemoKit.Win32Input]::Chord([uint16[]]$keys) }
             Write-DemoAction 'key' @{ keys = $Action.keys }
         }
@@ -282,7 +316,7 @@ function Invoke-DemoAction($Window, $Action, [int]$GlideMs = 700, [long]$At = 0)
         }
         'navigate' {
             [DemoKit.Win32Input]::Chord(@($VK.Ctrl, $VK.L)); Start-Sleep -Milliseconds 150
-            [DemoKit.Win32Input]::TypeText([string]$Action.url, 8); [DemoKit.Win32Input]::KeyPress($VK.Enter)
+            [DemoKit.Win32Input]::TypeText([string]$Action.url, 8); [DemoKit.Win32Input]::KeyPress($VK.Delete); [DemoKit.Win32Input]::KeyPress($VK.Enter)   # Delete drops any inline autocompletion
             $script:DocCache = @{}
             Write-DemoAction 'navigate' @{ url = $Action.url }
         }

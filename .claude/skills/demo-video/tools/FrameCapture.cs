@@ -51,7 +51,17 @@ namespace DemoKit
                     next = Math.Max(next + interval, now - interval); // never try to catch up more than one frame
                     long stamp = DateTime.UtcNow.Ticks;
                     Bitmap bmp;
-                    bmp = dx != null ? dx.Grab(0) : null;   // null until DXGI has a real image (static or blank first frame)
+                    bmp = null;
+                    if (dx != null)
+                    {
+                        try { bmp = dx.Grab(0); }   // null until DXGI has a real image (static or blank first frame)
+                        catch (Exception e)
+                        {
+                            // Duplication can be lost for good (UAC prompt, lock screen, display change): carry on with GDI.
+                            dx.Dispose(); dx = null; Backend = "gdi after dxgi failed (" + e.Message + ")";
+                            File.WriteAllText(Path.Combine(outDir, "backend.txt"), Backend);
+                        }
+                    }
                     if (bmp == null) { bmp = new Bitmap(w, h, PixelFormat.Format32bppRgb); using (var g0 = Graphics.FromImage(bmp)) g0.CopyFromScreen(x, y, 0, 0, new Size(w, h), CopyPixelOperation.SourceCopy); }
                     var cur = Win32Input.CursorState();   // cursor is logged, not baked in: the renderer draws it after zooming
                     queue.Add(Tuple.Create(n, bmp));

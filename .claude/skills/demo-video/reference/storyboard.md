@@ -7,7 +7,7 @@ demo/
   project.json      setup answers and settings (you write it from the setup questions)
   storyboard.json   scenes: narration, actions, effects, edits (you write it; the user approves it)
   plan.md           feature coverage map (demo-plan)
-  log.jsonl         append-only record of every voice, rehearsal, take, clip render and stitch (tools write it)
+  log.jsonl         append-only record of every voice, rehearsal, take, clip render and stitch, plus notes (approvals, review notes) added with Note.ps1
   manifest.json     current take and clip of each scene, and every final version (tools write it)
   audio/            narration audio, cached by content hash
   takes/<scene>/<take-id>/   frames, cursor and audio logs, page snapshots, take.json (exact inputs used)
@@ -15,7 +15,7 @@ demo/
   final/            <name>-v001.mp4, .srt, .chapters.txt, .json (which clips went in), -review/ stills
 ```
 
-Never edit `log.jsonl`, `manifest.json` or anything under `takes/` by hand. Old takes and clips are kept so any version can be traced and rebuilt.
+Never edit `log.jsonl`, `manifest.json` or anything under `takes/` by hand; add notes with `Note.ps1`. Old takes, clips and finals are kept so any version can be traced. A final's `.json` lists the exact take and render of every scene in it; a take's `take.json` holds the scene definition and settings it was recorded with.
 
 ## project.json
 
@@ -23,7 +23,7 @@ Never edit `log.jsonl`, `manifest.json` or anything under `takes/` by hand. Old 
 |---|---|
 | `app_url` | Start page. |
 | `browser` | `msedge` (default) or `chrome`. |
-| `profile` | `private` (default: throwaway InPrivate window, clean state), `dedicated` (persistent profile in `demo/.browser-profile`: the user signs in there by hand once), `attach` (drive a window the user already opened; needs `window_title`). |
+| `profile` | `private` (default: throwaway InPrivate window, clean state), `dedicated` (persistent profile in `demo/.browser-profile`: run `Open.ps1` and the user signs in there by hand once), `attach` (drive a window the user already opened, with no launch flags at all; needs `window_title`; its zoom and F11 are changed to the project's). |
 | `window_title` | Title pattern of the app's window, e.g. `"Acme*"`. |
 | `monitor` | Screen index from `Get-DemoMonitors` (setup question). |
 | `fullscreen` | `true` = press F11 (hides tabs and address bar) (setup question). |
@@ -32,13 +32,15 @@ Never edit `log.jsonl`, `manifest.json` or anything under `takes/` by hand. Old 
 | `fps` | Capture rate, default 15 (DXGI handles up to about 28 at 2560x1600). |
 | `app_audio` | `true` when the app makes sound worth keeping (talking agents, alerts): system audio is recorded. |
 | `app_audio_volume` | Optional fixed gain for that sound; default levels it to the narration. |
-| `voice` | `{ "engine": "aria"|"builtin", "name": "en-US-AriaNeural", "rate": "+0%", "pitch": "+0Hz", "volume": "+0%", "lexicon": { "SaaS": "sass" } }`. Edge's voice service honours only rate, pitch and volume; the lexicon respells words before speaking. |
+| `voice` | `{ "engine": "aria"|"builtin", "name": "en-US-AriaNeural", "builtin_name": "Zira", "rate": "+0%", "pitch": "+0Hz", "volume": "+0%", "lexicon": { "SaaS": "sass" } }`. Aria (Edge's voice service) honours rate, pitch and volume only; keep rate changes within about 6%. `builtin_name` picks an installed Windows voice for `engine: builtin` and for the fallback when Aria is unreachable (built-in voices ignore rate, pitch and volume). The lexicon respells words before speaking; changing it makes every take stale. |
 | `captions` | Burn captions in (default true). An `.srt` is always written. |
 | `title_card` | Opening card from the storyboard title (default true). |
 | `brand` | `{ "accent": "#RRGGBB", "background_from": "#RRGGBB", "background_to": "#RRGGBB", "font": "Segoe UI" }`. |
 | `music` | Optional `{ "file": "music.mp3", "volume": 0.12 }` (a file the user supplies and has rights to). |
 | `output` | `{ "width": 1920, "name": "acme-demo" }`. |
-| `replay_earlier` | Default true: when re-recording a later scene alone, earlier scenes are replayed off-camera first to rebuild the app's state. |
+| `replay_earlier` | Default true: scenes that are not being recorded are replayed off-camera, in order, so each recorded scene starts from the right app state. Set false if replaying would repeat a step that must not repeat (then reset state in `pre`). |
+
+Changing `app_url`, `browser`, `monitor`, `fullscreen`, `zoom`, `voice` or `app_audio` makes every take stale.
 
 ## storyboard.json
 
@@ -51,7 +53,8 @@ Never edit `log.jsonl`, `manifest.json` or anything under `takes/` by hand. Old 
 
 - `id`: letters, digits, `-`, `_` (it names files). Scene order is the video order.
 - `narration`: what the voice says. `[pause 400ms]` inserts a real pause (the phrases are voiced separately). Word indexes (`at_word`) count the words **as spoken**: run `Test-Storyboard.ps1` after `Record.ps1 -VoiceOnly` to print them (a lexicon respelling can split one word into two).
-- Changing `narration`, `voice`, `pre`, `actions` or a phrase target makes the scene's take stale (re-record that scene). Changing other effects, edits or brand settings only needs a re-render.
+- Changing `narration`, `voice`, `pre`, `actions` or a phrase target makes the scene's take stale (re-record that scene). Changing other effects, edits, `caption_position` or brand settings only needs a re-render (Stitch re-renders automatically).
+- `caption_position`: `auto` (default: top when the scene's clicks or an effect are in the bottom band), `top` or `bottom`.
 
 ### Targets (how an element is found, through Windows UI Automation)
 
@@ -59,8 +62,9 @@ Never edit `log.jsonl`, `manifest.json` or anything under `takes/` by hand. Old 
 
 - `type`: Button, Hyperlink, Edit, ComboBox, CheckBox, RadioButton, MenuItem, TabItem, ListItem, Text, Group, Image, Document, List...
 - `name`: the accessible name exactly, or a wildcard pattern (`"Order *"`). Take names from `Scout.ps1` output or a take's snapshots, never guess.
-- `within`: search inside another element (for example a chat window); `pick`: first, last, top-left, top-right, bottom-left, bottom-right among matches (for unnamed icons such as a close button).
-- Effects can also target a phrase on screen: `{ "text": "Grows your business" }` (measured during the take).
+- `within`: search inside another element (for example a chat window); `pick`: first, last, top-left, top-right, bottom-left, bottom-right among matches (for unnamed icons such as a close button). **Actions only**: effect targets use `type`, `name`, `id`, `index` or `text`.
+- Effects can also target a phrase on screen: `{ "text": "Grows your business" }` (measured during the take, so adding or changing one needs a new take).
+- Control types must be UI Automation names (Test-Storyboard rejects unknown ones).
 
 ### Actions
 
@@ -68,9 +72,9 @@ Never edit `log.jsonl`, `manifest.json` or anything under `takes/` by hand. Old 
 |---|---|---|
 | `click`, `double_click`, `right_click`, `hover` | `target` | Real cursor glides (0.7 s, eased) and lands on time. |
 | `type` | `target`, `text`, `cps` (default 18), `clear` | Clicks the field, then types with Unicode key events. |
-| `key` | `keys` e.g. `"Ctrl+K"`, `"Enter"` | |
+| `key` | `keys` e.g. `"Ctrl+K"`, `"Enter"`, `"Esc"`, `"F2"`, `"Ctrl+/"`, `"Ctrl++"` | Names: Ctrl, Shift, Alt, Win, Enter, Tab, Esc, Space, Back, Delete, arrows, Home, End, PageUp, PageDown, F1-F12, Plus, Minus; or one character. |
 | `scroll` | `notches` (+ down), optional `target` to scroll over | |
-| `navigate` | `url` | Ctrl+L, type, Enter. |
+| `navigate` | `url` | Ctrl+L, type, Delete (drops autocompletion), Enter. |
 | `wait` | `ms`, or `for` (a target to appear) + `timeout_ms` | |
 | `wait_audio` | `start_timeout_ms`, `quiet_ms`, `timeout_ms`, `expect_seconds` | Needs `app_audio`. Waits for the app to start making sound, then for `quiet_ms` of silence. |
 
@@ -82,7 +86,7 @@ Timing: `at_word` (index into the spoken words) or `at` (seconds from the narrat
 
 | Effect | Use | Defaults |
 |---|---|---|
-| `zoom` | Push in on a region while it's discussed; chained zooms under 1.5 s apart pan instead | eases in 0.75 s landing on the cue, holds, out 0.9 s; scale 1.25-1.5 (hard cap 2.0, never past the captured pixels) |
+| `zoom` | Push in on a region while it's discussed; chained zooms under 1.5 s apart pan instead | eases in 0.75 s landing on the cue, holds, out 0.9 s; scale 1.25-1.5 (hard cap 2.0). The target plus 15% must fit the frame, so a wide target cannot zoom (RenderClip warns); at most 25% beyond the captured pixels. |
 | `highlight` | Outline a control being named | 0.2 s in, until the phrase ends + 0.3 s |
 | `spotlight` | Dim everything else (about 50%) | at most one per scene; not with a zoom deeper than 1.3 |
 | `underline` / `marker` | Draw under / sweep a highlighter across a phrase | for short labels |
@@ -92,7 +96,7 @@ Timing: `at_word` (index into the spoken words) or `at` (seconds from the narrat
 
 ### Edits (post-production, in seconds from the narration start; no re-recording needed)
 
-- `{ "cut": [from, to] }`: remove picture and sound (refused where narration or the app's speech is playing). Cuts are crossfaded.
+- `{ "cut": [from, to] }`: remove picture and sound (skipped with a warning where narration or the app's speech is playing). Cuts are crossfaded.
 - `{ "freeze": [from, to] }`: hold the frame at `from` while the narration keeps playing (hide a spinner or flicker).
 - `{ "pause": 1.2, "at_word": 7 }`: insert a still frame and silence; narration resumes after.
 - `"auto_trim": false`: keep idle silent stretches (by default stretches over 1.5 s with no motion, speech or action are cut to 0.6 s).

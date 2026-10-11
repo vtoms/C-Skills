@@ -39,7 +39,6 @@
         { "do": "wait_audio", "start_timeout_ms": 30000, "quiet_ms": 1800, "timeout_ms": 90000, "expect_seconds": 16 }
       ],
       "edits": [ { "cut": [8.6, 10.3], "why": "shorten the agent's thinking pause" } ],
-      "edits": [ { "cut": [8.6, 10.3], "why": "shorten the agent's thinking pause" } ],
       "effects": [
         { "type": "zoom", "target": { "type": "Document", "name": "AI Chatbot Support Window" }, "at_app_audio": true, "scale": 1.35 }
       ]

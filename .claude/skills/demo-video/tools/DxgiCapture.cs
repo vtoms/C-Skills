@@ -63,6 +63,8 @@ namespace DemoKit
                         {
                             X = Marshal.ReadInt32(desc, 64); Y = Marshal.ReadInt32(desc, 68);
                             Width = Marshal.ReadInt32(desc, 72) - X; Height = Marshal.ReadInt32(desc, 76) - Y;
+                            int rotation = Marshal.ReadInt32(desc, 84);   // DXGI_MODE_ROTATION: 0 unspecified, 1 identity
+                            if (rotation > 1) { Release(ref output); Release(ref adapter); throw new InvalidOperationException("Rotated monitor: using GDI capture"); }
                             int level; Check(D3D11CreateDevice(adapter, 0, IntPtr.Zero, 0, IntPtr.Zero, 0, 7, out device, out level, out context), "D3D11CreateDevice");
                             foreach (var s in outputIids) { Guid g = new Guid(s); if (Slot<QueryFn>(output, 0)(output, ref g, out output1) >= 0) break; output1 = IntPtr.Zero; }
                             if (output1 == IntPtr.Zero) throw new InvalidOperationException("This Windows version has no IDXGIOutput1 (needs Windows 8 or later)");
