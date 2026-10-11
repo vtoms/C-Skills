@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TaskBoard demo fixture</title>
+<style>
+  :root { --bg: #f6f7fb; --card: #fff; --ink: #1d2433; --muted: #667085; --accent: #3b5bdb; --ok: #2b8a3e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.5 "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+  header { display: flex; align-items: center; gap: 24px; padding: 16px 32px; background: var(--card); border-bottom: 1px solid #e4e7ec; }
+  header h1 { font-size: 20px; margin: 0; }
+  nav a { margin-right: 16px; color: var(--muted); text-decoration: none; }
+  nav a[aria-current="page"] { color: var(--accent); font-weight: 600; }
+  main { max-width: 960px; margin: 32px auto; padding: 0 16px; }
+  .card { background: var(--card); border: 1px solid #e4e7ec; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+  form { display: flex; gap: 12px; }
+  input[type=text] { flex: 1; padding: 10px 12px; font: inherit; border: 1px solid #d0d5dd; border-radius: 8px; }
+  button { padding: 10px 18px; font: inherit; border: 0; border-radius: 8px; background: var(--accent); color: #fff; cursor: pointer; }
+  button.secondary { background: #eef2ff; color: var(--accent); }
+  ul { list-style: none; padding: 0; margin: 16px 0 0; }
+  li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #f0f1f4; }
+  li.done span { text-decoration: line-through; color: var(--muted); }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .stat { text-align: center; }
+  .stat b { display: block; font-size: 32px; }
+  #toast { position: fixed; right: 24px; bottom: 24px; background: var(--ok); color: #fff; padding: 12px 18px; border-radius: 8px; opacity: 0; transition: opacity .3s; }
+  #toast.show { opacity: 1; }
+  .filler { height: 900px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>TaskBoard</h1>
+  <nav aria-label="Main">
+    <a href="#tasks" aria-current="page">Tasks</a>
+    <a href="#reports">Reports</a>
+  </nav>
+</header>
+<main>
+  <section class="card" aria-labelledby="tasks-h">
+    <h2 id="tasks-h">Tasks</h2>
+    <form id="add-form">
+      <input id="new-task" type="text" aria-label="New task" placeholder="What needs doing?">
+      <button id="add-btn" type="submit">Add task</button>
+    </form>
+    <ul id="list" aria-label="Task list"></ul>
+    <p><button id="clear-done" class="secondary" type="button">Clear completed</button></p>
+  </section>
+  <section class="card" id="reports" aria-labelledby="reports-h">
+    <h2 id="reports-h">Reports</h2>
+    <div class="stats">
+      <div class="stat"><b id="total">0</b>Total</div>
+      <div class="stat"><b id="open">0</b>Open</div>
+      <div class="stat"><b id="closed">0</b>Done</div>
+    </div>
+  </section>
+  <p class="filler">End of page.</p>
+</main>
+<div id="toast" role="status"></div>
+<script>
+  const tasks = [{ t: 'Draft release notes', d: false }, { t: 'Review pull requests', d: true }];
+  const $ = id => document.getElementById(id);
+  function toast(msg) { const el = $('toast'); el.textContent = msg; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 1800); }
+  function render() {
+    $('list').innerHTML = '';
+    tasks.forEach((x, i) => {
+      const li = document.createElement('li'); if (x.d) li.className = 'done';
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = x.d; cb.setAttribute('aria-label', 'Complete ' + x.t);
+      cb.onchange = () => { x.d = cb.checked; render(); if (x.d) toast('Nice work!'); };
+      const sp = document.createElement('span'); sp.textContent = x.t;
+      li.append(cb, sp); $('list').append(li);
+    });
+    $('total').textContent = tasks.length;
+    $('open').textContent = tasks.filter(x => !x.d).length;
+    $('closed').textContent = tasks.filter(x => x.d).length;
+  }
+  $('add-form').onsubmit = e => { e.preventDefault(); const v = $('new-task').value.trim(); if (!v) return; tasks.push({ t: v, d: false }); $('new-task').value = ''; render(); toast('Task added'); };
+  $('clear-done').onclick = () => { for (let i = tasks.length - 1; i >= 0; i--) if (tasks[i].d) tasks.splice(i, 1); render(); toast('Cleared'); };
+  render();
+</script>
+</body>
+</html>
