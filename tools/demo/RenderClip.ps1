@@ -131,7 +131,11 @@ foreach ($scene in $targets) {
     if ($frames.Count -lt 2) { throw "${id}: the take has too few frames." }
     $clicks = @($take.events | Where-Object { $_.kind -eq 'click' } | ForEach-Object { [pscustomobject]@{ t = (SecOf ([long]$_.t)); x = $_.x; y = $_.y } })
     $words = @($take.words)
-    $speaking = { param($a, $b) foreach ($w in $words) { if ([double]$w.end + 0.15 -gt $a -and [double]$w.start - 0.15 -lt $b) { return $true } }; $false }
+    $appLoud = @(foreach ($x in @($take.app_audio.levels)) { if ($x -and [double]$x[1] -gt 0.01) { SecOf ([long]$x[0]) } })
+    $speaking = { param($a, $b)
+        foreach ($w in $words) { if ([double]$w.end + 0.15 -gt $a -and [double]$w.start - 0.15 -lt $b) { return $true } }
+        foreach ($t in $appLoud) { if ($t -gt $a - 0.3 -and $t -lt $b + 0.3) { return $true } }   # the app itself is talking
+        $false }
 
     # --- Edit list on the source timeline: segments of play / freeze, plus inserted pauses ---
     $cuts = @(); $freezes = @(); $pauses = @()
@@ -144,7 +148,7 @@ foreach ($scene in $targets) {
     # Automatic: trim idle stretches (nothing moving, nobody speaking, no action) longer than 1.5 s down to 0.6 s.
     $autoCuts = @()
     if ($scene.auto_trim -ne $false) {
-        $busy = @($take.actions | ForEach-Object { , @(((SecOf ([long]$_.start)) - 0.2), ((SecOf ([long]$_.end)) + 0.5)) })
+        $busy = @($take.actions | Where-Object { $_.do -ne 'wait_audio' } | ForEach-Object { , @(((SecOf ([long]$_.start)) - 0.2), ((SecOf ([long]$_.end)) + 0.5)) })
         $still = @(); $runStart = $null
         for ($k = 1; $k -lt $frames.Count; $k++) {
             $diff = [DemoKit.FrameCompose]::Difference((Join-Path $takeDir ('f{0:D6}.jpg' -f $frames[$k - 1].i)), (Join-Path $takeDir ('f{0:D6}.jpg' -f $frames[$k].i)))
@@ -193,6 +197,11 @@ foreach ($scene in $targets) {
         if (-not $e) { continue }
         $cue = Get-WordTime $take $e 'start'
         $phraseEnd = Get-WordTime $take $e 'end'
+        if ($e.at_app_audio) {
+            # Runs while the app itself is speaking (e.g. a chat agent's spoken answer).
+            if (-not $appLoud) { Write-Warning "${id}: $($e.type) is timed to the app's audio, but the take has none; effect skipped."; continue }
+            $cue = ($appLoud | Measure-Object -Minimum).Minimum; $phraseEnd = ($appLoud | Measure-Object -Maximum).Maximum
+        }
         $rect = Resolve-TargetRect $take $e $cue
         $vx = [math]::Max(0, [math]::Min($rect.x + $rect.w, $cap.x + $cap.width) - [math]::Max($rect.x, $cap.x))
         $vy = [math]::Max(0, [math]::Min($rect.y + $rect.h, $cap.y + $cap.height) - [math]::Max($rect.y, $cap.y))
@@ -292,12 +301,22 @@ foreach ($scene in $targets) {
         Add-WinRTItem $comp.Clips $clip ([Windows.Media.Editing.MediaClip])
     }
     $placed = 0
-    foreach ($part in @($take.audio)) {
+    $parts = @($take.audio | ForEach-Object { [pscustomobject]@{ file = (Join-Path $Dir $_.file); offset = [double]$_.offset; duration = [double]$_.duration; volume = 1.0 } })
+    if ($take.app_audio) {
+        # Level the app's own sound against the narration: scale its speech to about 0.11 RMS (Aria's typical level).
+        $loudLv = @($take.app_audio.levels | ForEach-Object { [double]$_[1] } | Where-Object { $_ -gt 0.01 } | Sort-Object)
+        $autoGain = if ($loudLv.Count) { [math]::Round([math]::Min(1.0, 0.11 / $loudLv[[int]($loudLv.Count / 2)]), 3) } else { 1.0 }
+        $wav = Join-Path $takeDir $take.app_audio.file
+        $parts += [pscustomobject]@{ file = $wav; offset = (SecOf ([long]$take.app_audio.start)); duration = ((Get-Item $wav).Length - 44) / (48000.0 * 4)
+                                     volume = $(if ($null -ne $project.app_audio_volume) { [double]$project.app_audio_volume } else { $autoGain }) }
+    }
+    foreach ($part in $parts) {
         $pFrom = [double]$part.offset; $pTo = $pFrom + [double]$part.duration
         foreach ($sp in $audioSpans) {
             $a = [math]::Max($sp.srcFrom, $pFrom); $b = [math]::Min($sp.srcTo, $pTo)
             if ($b - $a -lt 0.01) { continue }
-            $track = Wait-WinRT ([Windows.Media.Editing.BackgroundAudioTrack]::CreateFromFileAsync((Get-StorageFile (Join-Path $Dir $part.file)))) ([Windows.Media.Editing.BackgroundAudioTrack])
+            $track = Wait-WinRT ([Windows.Media.Editing.BackgroundAudioTrack]::CreateFromFileAsync((Get-StorageFile $part.file))) ([Windows.Media.Editing.BackgroundAudioTrack])
+            $track.Volume = $part.volume
             $track.TrimTimeFromStart = [TimeSpan]::FromTicks([long](($a - $pFrom) * 1e7))
             $track.TrimTimeFromEnd = [TimeSpan]::FromTicks([long]([math]::Max(0, $track.OriginalDuration.TotalSeconds - ($b - $pFrom)) * 1e7))
             $track.Delay = [TimeSpan]::FromTicks([long](($sp.outFrom + ($a - $sp.srcFrom)) * 1e7))

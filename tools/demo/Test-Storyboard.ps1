@@ -35,10 +35,10 @@ if (-not $board.title) { Warn 'storyboard: no title (the title card will be skip
 if ($scenes.Count -eq 0) { Err 'storyboard: no scenes.' }
 $ids = @{}
 $pointer = 'click', 'double_click', 'right_click', 'hover', 'type'
-$known = $pointer + 'key', 'scroll', 'navigate', 'wait'
+$known = $pointer + 'key', 'scroll', 'navigate', 'wait', 'wait_audio'
 $risky = '(?i)\b(delete|remove|destroy|drop|pay|purchase|buy|checkout|send|submit|publish|post|transfer|unsubscribe|deactivate|reset)\b'
 $audioDir = Join-Path $Dir 'audio'
-$script:callouts = 0
+$script:callouts = 0; $script:wordMaps = @()
 $total = 0.0
 
 foreach ($s in $scenes) {
@@ -76,11 +76,12 @@ foreach ($s in $scenes) {
         if ($a.do -eq 'key' -and -not $a.keys) { Err "${sid}: 'key' needs keys, e.g. 'Ctrl+K'." }
         if ($a.do -eq 'navigate' -and -not $a.url) { Err "${sid}: 'navigate' needs url." }
         if ($a.do -eq 'wait' -and -not ($a.ms -or $a.for)) { Err "${sid}: 'wait' needs ms or for." }
+        if ($a.do -eq 'wait_audio' -and -not $project.app_audio) { Err "${sid}: 'wait_audio' needs app_audio: true in project.json." }
         $label = "$($a.target.name)$($a.target.id) $($a.text)"
         if ($label -match $risky) { Warn "${sid}: '$($a.do)' on '$($label.Trim())' looks destructive or outward-facing; confirm it is safe test data." }
         if ($null -ne $a.at_word -and ([int]$a.at_word -lt 0 -or [int]$a.at_word -ge $times.Count)) { Err "${sid}: at_word $($a.at_word) is outside 0..$($times.Count - 1)." }
     }
-    $clock = 0.0
+    $clock = -0.4   # actions may start during the 0.4 s lead-in before the narration
     foreach ($a in @($s.actions)) {
         if (-not $a -or $a.do -notin $known) { continue }
         $want = if ($null -ne $a.at_word -and [int]$a.at_word -lt $times.Count -and [int]$a.at_word -ge 0) { $times[[int]$a.at_word] } elseif ($null -ne $a.at) { [double]$a.at } else { $null }
@@ -88,6 +89,7 @@ foreach ($s in $scenes) {
             'type' { 0.25 + 0.7 + 0.25 + ([string]$a.text).Length / $(if ($a.cps) { [double]$a.cps } else { 18 }) + 0.35; break }
             'navigate' { 0.3 + ([string]$a.url).Length * 0.01 + 1.5; break }
             'wait' { if ($a.ms) { $a.ms / 1000 } else { 1.0 }; break }
+            'wait_audio' { if ($a.expect_seconds) { [double]$a.expect_seconds + 1.2 } else { 8.0 }; break }
             { $_ -in $pointer } { 0.25 + 0.7 + 0.15 + 0.35 }
             default { 0.5 }
         }
@@ -99,13 +101,16 @@ foreach ($s in $scenes) {
         } else { $clock += $cost }
     }
     $sceneLen = [math]::Max(0.4 + $dur + 0.7, $clock + 0.4)
-    if ($clock -gt $dur + 2) { Warn ("{0}: actions run {1:N1}s past the narration (dead air). Add narration or trim actions." -f $sid, ($clock - $dur)) }
+    $appTalk = 0.0; foreach ($a in @($s.actions)) { if ($a.do -eq 'wait_audio') { $appTalk += $(if ($a.expect_seconds) { [double]$a.expect_seconds } else { 6.8 }) } }
+    if (-not $estimated -and -not $Quiet) { $script:wordMaps += "  ${sid} words: " + ((0..($times.Count - 1) | ForEach-Object { "$_=$(@($m.words)[$_].text)" }) -join ' ') }
+    if ($clock - $appTalk -gt $dur + 2) { Warn ("{0}: actions run {1:N1}s past the narration (dead air). Add narration or trim actions." -f $sid, ($clock - $appTalk - $dur)) }
     if ($s.zoom) { Err ("{0}: 'zoom' was replaced by the 'effects' list, e.g. effects: [ {{ type: 'zoom', target: {{...}}, at_word: 3 }} ]." -f $sid) }
     $moveCount = 0
     foreach ($e in @($s.effects)) {
         if (-not $e) { continue }
         if ($e.type -notin 'zoom', 'highlight', 'spotlight', 'marker', 'underline', 'callout') { Err "${sid}: unknown effect type '$($e.type)'."; continue }
         if (-not $e.target -and -not $e.rect) { Err "${sid}: effect '$($e.type)' needs a target (name/id/type) or a rect." }
+        if ($e.at_app_audio -and -not $project.app_audio) { Err "${sid}: at_app_audio needs app_audio: true in project.json." }
         foreach ($f in 'at_word', 'until_word') { if ($null -ne $e.$f -and ([int]$e.$f -lt 0 -or [int]$e.$f -ge $times.Count)) { Err "${sid}: effect $f $($e.$f) is outside 0..$($times.Count - 1)." } }
         if ($null -ne $e.until_word -and $null -ne $e.at_word -and [int]$e.until_word -lt [int]$e.at_word) { Err "${sid}: effect until_word is before at_word." }
         if ($e.type -eq 'zoom') {
@@ -125,6 +130,7 @@ if ($script:callouts -gt 2) { Warn "storyboard: $($script:callouts) magnifier ca
 if (-not $Quiet) {
     $errors | ForEach-Object { "ERROR: $_" }
     $warnings | ForEach-Object { "WARN:  $_" }
+    if ($script:wordMaps) { "Word indexes for at_word / until_word (as spoken):"; $script:wordMaps }
     "{0} scenes, about {1:N0}s of video{2}. {3} errors, {4} warnings." -f $scenes.Count, $total, $(if ($estimated) { ' (timing estimated; run Record.ps1 -VoiceOnly for real timings)' } else { '' }), $errors.Count, $warnings.Count
 }
 if ($errors.Count) { exit 1 }

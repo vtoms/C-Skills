@@ -115,7 +115,7 @@ if ("$result" -ne 'None') { throw "Stitch failed: $result" }
 function Fmt([double]$s) { $t = [TimeSpan]::FromSeconds($s); '{0:00}:{1:00}:{2:00},{3:000}' -f [int][math]::Floor($t.TotalHours), $t.Minutes, $t.Seconds, $t.Milliseconds }
 $lines = for ($i = 0; $i -lt $srt.Count; $i++) { ($i + 1); "$(Fmt $srt[$i].start) --> $(Fmt $srt[$i].end)"; $srt[$i].text; '' }
 [IO.File]::WriteAllLines([IO.Path]::ChangeExtension($out, '.srt'), [string[]]$lines, (New-Object Text.UTF8Encoding $false))
-$chap = @('0:00 Intro') + @($chapters | ForEach-Object { $t = [TimeSpan]::FromSeconds([math]::Floor($_.at)); '{0}:{1:00} {2}' -f [int]$t.TotalMinutes, $t.Seconds, $_.title })
+$chap = @('0:00 Intro') + @($chapters | ForEach-Object { $t = [TimeSpan]::FromSeconds([math]::Floor($_.at)); '{0}:{1:00} {2}' -f [int][math]::Floor($t.TotalMinutes), $t.Seconds, $_.title })
 if (-not ($project.title_card -ne $false -and $board.title)) { $chap = $chap | Select-Object -Skip 1; $chap[0] = $chap[0] -replace '^\S+', '0:00' }
 [IO.File]::WriteAllLines([IO.Path]::ChangeExtension($out, '.chapters.txt'), [string[]]$chap, (New-Object Text.UTF8Encoding $false))
 

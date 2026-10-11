@@ -102,6 +102,24 @@ function Get-Offset($Item, $Meta) {
     if ($null -ne $Item.at) { return [double]$Item.at }
     $null
 }
+# Waits for the app's own sound (system audio level) to start, then to stay quiet for quiet_ms.
+function Wait-DemoAppAudio($Item) {
+    $levels = Join-Path $session 'levels.tsv'
+    if (-not (Test-Path $levels)) { throw "wait_audio needs the project setting app_audio: true (system audio is not being recorded)." }
+    $threshold = if ($Item.threshold) { [double]$Item.threshold } else { 0.01 }
+    $quietMs = if ($Item.quiet_ms) { [int]$Item.quiet_ms } else { 1200 }
+    $startBy = [DateTime]::UtcNow.AddMilliseconds($(if ($Item.start_timeout_ms) { [int]$Item.start_timeout_ms } else { 15000 }))
+    $giveUp = [DateTime]::UtcNow.AddMilliseconds($(if ($Item.timeout_ms) { [int]$Item.timeout_ms } else { 90000 }))
+    $since = [DateTime]::UtcNow.Ticks; $heard = $false; [long]$lastLoud = 0
+    while ([DateTime]::UtcNow -lt $giveUp) {
+        Start-Sleep -Milliseconds 100
+        $tail = @(Get-Content $levels -Tail 30 -ErrorAction SilentlyContinue | ForEach-Object { $q = $_.Split("`t"); [pscustomobject]@{ t = [long]$q[0]; v = [double]::Parse($q[1], [Globalization.CultureInfo]::InvariantCulture) } } | Where-Object { $_.t -ge $since })
+        foreach ($x in $tail) { if ($x.v -gt $threshold) { $heard = $true; $lastLoud = [math]::Max([long]$lastLoud, [long]$x.t) } }
+        if (-not $heard -and [DateTime]::UtcNow -gt $startBy) { throw "wait_audio: the app made no sound in time." }
+        if ($heard -and ([DateTime]::UtcNow.Ticks - $lastLoud) / 1e4 -ge $quietMs) { return [math]::Round(($lastLoud - $since) / 1e7, 2) }
+    }
+    throw 'wait_audio: the app was still making sound at the timeout.'
+}
 function Wait-Until([long]$Ticks) { $ms = [int](($Ticks - [DateTime]::UtcNow.Ticks) / 1e4); if ($ms -gt 0) { Start-Sleep -Milliseconds $ms } }
 function Save-Snapshot($Window, [string]$Path, [long]$T) {
     # Page element map with screen rectangles: lets post-production place highlights without re-recording.
@@ -135,41 +153,51 @@ Start-Sleep -Milliseconds 800
 # --- 3. Capture (separate process for the whole session; frames are split into per-scene takes afterwards) ---
 $session = Join-Path $Dir ('takes\_session-' + [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss'))
 $capture = $null
-if (-not $Rehearse) {
+$appAudio = [bool]$project.app_audio
+if (-not $Rehearse -or $appAudio) {
     $fps = if ($project.fps) { $project.fps } else { 15 }
-    $capture = Start-Process powershell -WindowStyle Hidden -PassThru -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
-        (Join-Path $PSScriptRoot 'Capture.ps1'), '-OutDir', $session, '-Monitor', ([int]$project.monitor), '-Fps', $fps
+    $capArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PSScriptRoot 'Capture.ps1'), '-OutDir', $session, '-Monitor', ([int]$project.monitor), '-Fps', $fps)
+    if ($appAudio) { $capArgs += '-Audio' }
+    if ($Rehearse) { $capArgs += '-NoVideo' }   # rehearsals still listen, so wait_audio works
+    $capture = Start-Process powershell -WindowStyle Hidden -PassThru -ArgumentList $capArgs
     $t = [DateTime]::UtcNow.AddSeconds(30)
     while (-not (Test-Path (Join-Path $session 'READY'))) { if ([DateTime]::UtcNow -gt $t -or $capture.HasExited) { throw 'Capture did not start.' }; Start-Sleep -Milliseconds 100 }
     Start-Sleep -Milliseconds 300
-} else { New-Item -ItemType Directory -Force $session | Out-Null }
+}
+if (-not $capture) { New-Item -ItemType Directory -Force $session | Out-Null }
 $actionLog = Join-Path $session 'actions.jsonl'
 Set-DemoActionLog $actionLog
-
-# --- 3b. Bring the app to the state the first selected scene starts from: when re-recording a later scene on its own,
-# replay the steps of every earlier scene quickly and off-camera (frames before the scene are discarded anyway).
-$firstIdx = [array]::IndexOf(@($board.scenes | ForEach-Object { $_.id }), $sceneList[0].id)
-if ($firstIdx -gt 0 -and -not $Rehearse -and $project.replay_earlier -ne $false) {
-    "Replaying $firstIdx earlier scene(s) to reach the starting state..."
-    [DemoKit.Win32Input]::Activate([IntPtr]$window.Current.NativeWindowHandle) | Out-Null
-    foreach ($prev in @($board.scenes)[0..($firstIdx - 1)]) {
-        foreach ($a in @($prev.pre) + @($prev.actions)) {
-            if (-not $a) { continue }
-            $fast = $a.PSObject.Copy(); if ($fast.do -eq 'type') { $fast | Add-Member -Force cps 60 }
-            Invoke-DemoAction $window $fast 250
-        }
-    }
-    Start-Sleep -Milliseconds 400
-}
 
 # --- 4. Scenes ---
 $results = @(); $failed = $null; $s = $null
 try {
+    # --- 3b. Bring the app to the state the first selected scene starts from: when re-recording a later scene on its own,
+    # replay the steps of every earlier scene quickly and off-camera (frames before the scene are discarded anyway).
+    $firstIdx = [array]::IndexOf(@($board.scenes | ForEach-Object { $_.id }), $sceneList[0].id)
+    if ($firstIdx -gt 0 -and -not $Rehearse -and $project.replay_earlier -ne $false) {
+        Write-Host "Replaying $firstIdx earlier scene(s) to reach the starting state..."
+        [DemoKit.Win32Input]::Activate([IntPtr]$window.Current.NativeWindowHandle) | Out-Null
+        Set-DemoFindTimeout 20000   # replayed steps run fast, so give slow-loading parts of the app more time
+        foreach ($prev in @($board.scenes)[0..($firstIdx - 1)]) {
+            foreach ($a in @($prev.pre) + @($prev.actions)) {
+                if (-not $a) { continue }
+                if ($a.do -eq 'wait_audio') { if ($appAudio) { [void](Wait-DemoAppAudio $a) } else { Start-Sleep -Seconds 5 }; continue }
+                $fast = $a.PSObject.Copy(); if ($fast.do -eq 'type') { $fast | Add-Member -Force cps 60 }
+                try { Invoke-DemoAction $window $fast 250 } catch { if (-not $a.optional) { throw } }
+            }
+            Start-Sleep -Milliseconds 1000
+        }
+        Set-DemoFindTimeout 5000
+        Start-Sleep -Milliseconds 400
+    }
     foreach ($s in $sceneList) {
         $meta = $voices[$s.id]
         $script:effectTexts = @($s.effects | Where-Object { $_.target.text } | ForEach-Object { [string]$_.target.text } | Select-Object -Unique)
         [DemoKit.Win32Input]::Activate([IntPtr]$window.Current.NativeWindowHandle) | Out-Null
-        foreach ($a in @($s.pre)) { if ($a) { Invoke-DemoAction $window $a $glideMs } }   # setup steps: run before the scene, cut from the video
+        foreach ($a in @($s.pre)) {   # setup steps: run before the scene, cut from the video
+            if (-not $a) { continue }
+            try { Invoke-DemoAction $window $a $glideMs } catch { if (-not $a.optional) { throw }; Write-Host "  (optional step skipped: $($_.Exception.Message))" }
+        }
         Start-Sleep -Milliseconds 300
         $snaps = @(Save-Snapshot $window '' ([DateTime]::UtcNow.Ticks))
         $start = [DateTime]::UtcNow.Ticks
@@ -193,7 +221,11 @@ try {
                 if ($e.item.do -in $moves) { Wait-Until ($at - [long]($lookahead * 1e7)) } else { Wait-Until $at }
             }
             $t0 = [DateTime]::UtcNow.Ticks
-            Invoke-DemoAction $window $e.item $glideMs $(if ($e.item.do -in $moves) { $at } else { 0 })
+            if ($e.item.do -eq 'wait_audio') { $heardFor = Wait-DemoAppAudio $e.item; Write-DemoAction 'app_audio' @{ seconds = $heardFor } }
+            else {
+                try { Invoke-DemoAction $window $e.item $glideMs $(if ($e.item.do -in $moves) { $at } else { 0 }) }
+                catch { if (-not $e.item.optional) { throw }; Write-Host "  (optional step skipped: $($_.Exception.Message))" }
+            }
             $entry = [ordered]@{ do = $e.item.do; target = $e.item.target; start = $t0; end = [DateTime]::UtcNow.Ticks }
             if ($at -gt 0 -and $e.item.do -in $moves -and $e.item.do -ne 'hover') {
                 $entry.late = [math]::Round(((Get-DemoLastClick) - $at) / 1e7, 2)   # seconds after its word (negative = early)
@@ -239,6 +271,16 @@ foreach ($r in $results) {
         }
     }
     $sceneActions = @($allActions | Where-Object { $_.t -ge $r.start - 1000000 -and $_.t -lt $r.end + 1000000 })
+    $appInfo = $null
+    if (-not $Rehearse -and (Test-Path (Join-Path $session 'audio.json'))) {
+        $aj = Read-DemoJson (Join-Path $session 'audio.json')
+        if (-not $aj.error -and $aj.started) {
+            $from = [long]$r.start; $to = [long]$r.end
+            [DemoKit.LoopbackCapture]::Slice((Join-Path $session 'app-audio.wav'), [long]$aj.started, (Join-Path $takeDir 'app-audio.wav'), $from, $to)
+            $lv = @(Get-Content (Join-Path $session 'levels.tsv') | ForEach-Object { $q = $_.Split("`t"); if ([long]$q[0] -ge $from -and [long]$q[0] -lt $to) { , @([long]$q[0], [double]::Parse($q[1], [Globalization.CultureInfo]::InvariantCulture)) } })
+            $appInfo = [ordered]@{ file = 'app-audio.wav'; start = $from; levels = $lv }
+        }
+    }
     Write-DemoJson ([ordered]@{
         scene = $id; take = $takeId; rehearsal = [bool]$Rehearse
         recorded_utc = [DateTime]::new($r.start, [DateTimeKind]::Utc).ToString('o')
@@ -246,7 +288,7 @@ foreach ($r in $results) {
         capture = $(if ($cap) { [ordered]@{ x = $cap.x; y = $cap.y; width = $cap.width; height = $cap.height; fps = $cap.fps; frames = $n } } else { $null })
         start = $r.start; voice_start = $r.voice_start; end = $r.end; lead_in = $LeadIn
         audio = @($r.meta.parts); narration = $r.meta.narration; voice = $r.meta.voice; duration = $r.meta.duration; words = @($r.meta.words)
-        actions = @($r.actions); events = $sceneActions; snapshots = @($r.snapshots)
+        actions = @($r.actions); events = $sceneActions; snapshots = @($r.snapshots); app_audio = $appInfo
         scene_definition = $r.scene                                   # exactly what was recorded
         project_settings = [ordered]@{ app_url = $project.app_url; browser = $browser; profile = $mode; monitor = $project.monitor; fullscreen = $project.fullscreen; zoom = $zoomUsed; fps = $project.fps; voice = $project.voice }
     }) (Join-Path $takeDir 'take.json') 30

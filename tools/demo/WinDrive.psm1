@@ -9,6 +9,8 @@ Enable-DemoDpiAwareness
 $script:ActionLog = $null
 $script:Settle = 350   # ms to let the page react after an action
 $script:LastClick = 0
+$script:FindTimeoutMs = 5000
+function Set-DemoFindTimeout([int]$Ms) { $script:FindTimeoutMs = $Ms }
 function Get-DemoLastClick { $script:LastClick }
 
 $VK = @{ Ctrl = 0x11; Shift = 0x10; Alt = 0x12; Win = 0x5B; Enter = 0x0D; Tab = 0x09; Esc = 0x1B; Space = 0x20
@@ -142,9 +144,11 @@ function Find-DemoDocumentUncached($Window, [int]$TimeoutMs) {
     Write-Warning 'No page document found; searching the whole browser window.'
     $null
 }
-# target: @{ name = 'text or *wildcard*'; type = 'Button'|'Hyperlink'|'Edit'|...; id = 'automationId'; index = 0 }
+# target: @{ name = 'text or *wildcard*'; type = 'Button'|'Hyperlink'|'Edit'|...; id = 'automationId'; index = 0
+#           within = <another target to search inside>; pick = first|last|top-left|top-right|bottom-left|bottom-right }
 function Find-DemoElement($Window, $Target, [int]$TimeoutMs = 5000) {
     $root = Get-DemoDocument $Window; if (-not $root) { $root = $Window }
+    if ($Target.within) { $inner = Find-DemoElement $Window $Target.within $TimeoutMs; if (-not $inner) { return $null }; $root = $inner }
     $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
     $AE = [System.Windows.Automation.AutomationElement]
     do {
@@ -163,6 +167,17 @@ function Find-DemoElement($Window, $Target, [int]$TimeoutMs = 5000) {
             } catch { }
         }
         $hits = @($hits)
+        if ($Target.pick -and $hits.Count) {
+            $key = switch ($Target.pick) {
+                'top-right' { { - $_.Current.BoundingRectangle.Right + $_.Current.BoundingRectangle.Top } }
+                'top-left' { { $_.Current.BoundingRectangle.Left + $_.Current.BoundingRectangle.Top } }
+                'bottom-right' { { - $_.Current.BoundingRectangle.Right - $_.Current.BoundingRectangle.Bottom } }
+                'bottom-left' { { $_.Current.BoundingRectangle.Left - $_.Current.BoundingRectangle.Bottom } }
+                'last' { $null }
+                default { $null }
+            }
+            $hits = if ($Target.pick -eq 'last') { @($hits[-1]) } elseif ($key) { @($hits | Sort-Object $key) } else { $hits }
+        }
         $idx = if ($Target.index) { [int]$Target.index } else { 0 }
         if ($hits.Count -gt $idx) { return $hits[$idx] }
         Start-Sleep -Milliseconds 250
@@ -178,7 +193,7 @@ function Get-DemoElementCenter($Element) {
 # Lists visible, nameable page elements: the raw material for feature discovery and target resolution.
 function Get-DemoElementMap($Window, [int]$Max = 400) {
     $root = Get-DemoDocument $Window; if (-not $root) { $root = $Window }
-    $interesting = 'Button', 'Hyperlink', 'Edit', 'ComboBox', 'CheckBox', 'RadioButton', 'MenuItem', 'TabItem', 'ListItem', 'TreeItem', 'Header', 'HeaderItem', 'DataItem', 'Text', 'Group', 'Table', 'Image'
+    $interesting = 'Button', 'Hyperlink', 'Edit', 'ComboBox', 'CheckBox', 'RadioButton', 'MenuItem', 'TabItem', 'ListItem', 'TreeItem', 'Header', 'HeaderItem', 'DataItem', 'Text', 'Group', 'Table', 'Image', 'Document', 'Pane', 'List'
     $out = New-Object System.Collections.Generic.List[object]
     foreach ($e in $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)) {
         try {
@@ -186,6 +201,7 @@ function Get-DemoElementMap($Window, [int]$Max = 400) {
             $type = $c.ControlType.ProgrammaticName -replace '^ControlType\.', ''
             if ($type -notin $interesting -or $c.IsOffscreen -or $c.BoundingRectangle.IsEmpty) { continue }
             if ([string]::IsNullOrWhiteSpace($c.Name) -and -not $c.AutomationId) { continue }
+            if ($type -in 'Document', 'Pane' -and $e -eq $root) { continue }   # the page itself is not a target
             $r = $c.BoundingRectangle
             $out.Add([pscustomobject]@{ type = $type; name = $c.Name; id = $c.AutomationId; x = [int]$r.X; y = [int]$r.Y; w = [int]$r.Width; h = [int]$r.Height })
             if ($out.Count -ge $Max) { break }
@@ -237,7 +253,7 @@ function Invoke-DemoAction($Window, $Action, [int]$GlideMs = 700, [long]$At = 0)
     $do = $Action.do
     switch ($do) {
         { $_ -in 'click', 'double_click', 'right_click', 'hover', 'type' } {
-            $el = Find-DemoElement $Window $Action.target
+            $el = Find-DemoElement $Window $Action.target $script:FindTimeoutMs
             if (-not $el) { throw "Target not found for '$do': $($Action.target | ConvertTo-Json -Compress)" }
             $pt = Get-DemoElementCenter $el
             if ($At -gt 0) { $wait = [int](($At - [DateTime]::UtcNow.Ticks) / 1e4) - $GlideMs; if ($wait -gt 0) { Start-Sleep -Milliseconds $wait; $pt = Get-DemoElementCenter $el } }

@@ -1,0 +1,18 @@
+﻿{
+  "app_url": "https://machineavatars.com",
+  "browser": "msedge",
+  "profile": "private",
+  "window_title": "DIY Website AI Chatbot*",
+  "monitor": 0,
+  "fullscreen": true,
+  "zoom": 100,
+  "setup_answers": "Asked autonomously while the user was away: monitor 0 (only screen), F11 full screen (hides the address bar), zoom 100%.",
+  "fps": 15,
+  "app_audio": true,
+  "captions": true,
+  "title_card": true,
+  "voice": { "engine": "aria", "name": "en-US-AriaNeural", "rate": "+0%", "lexicon": { "MachineAvatars": "Machine Avatars" } },
+  "brand": { "accent": "#1E6BFF", "background_from": "#0B1A3A", "background_to": "#1E6BFF", "font": "Segoe UI" },
+  "output": { "width": 1920, "name": "machineavatars-demo" }
+}
+

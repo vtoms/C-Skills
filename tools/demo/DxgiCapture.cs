@@ -92,8 +92,17 @@ namespace DemoKit
             try
             {
                 int hr = Slot<AcquireFn>(dup, 8)(dup, (uint)timeoutMs, info, out resource);
+                // A frame with LastPresentTime 0 carries no new desktop image (only a pointer update). Before the first
+                // real image arrives such frames are empty, so keep waiting for one.
+                if (hr >= 0 && last == null && Marshal.ReadInt64(info, 0) == 0)
+                {
+                    Release(ref resource); Slot<ReleaseFrameFn>(dup, 14)(dup);
+                    if (attempt >= 3) return null;
+                    return Grab(Math.Max(timeoutMs, 100), attempt + 1);
+                }
                 if (hr == WAIT_TIMEOUT && last != null) return (Bitmap)last.Clone();
-                if ((hr == ACCESS_LOST || hr == WAIT_TIMEOUT) && attempt < 20) { if (hr == ACCESS_LOST) Duplicate(); return Grab(Math.Max(timeoutMs, 100), attempt + 1); }
+                if (hr == WAIT_TIMEOUT && last == null) return null;   // nothing changed yet and no image held: caller uses GDI
+                if (hr == ACCESS_LOST && attempt < 20) { Duplicate(); return Grab(Math.Max(timeoutMs, 100), attempt + 1); }
                 Check(hr, "AcquireNextFrame");
                 try
                 {
@@ -121,7 +130,16 @@ namespace DemoKit
                         Marshal.Copy(row, 0, IntPtr.Add(bd.Scan0, y * bd.Stride), row.Length);
                     }
                     bmp.UnlockBits(bd);
+                    // Blank-check on a grid of samples: the first duplicated frame can be all black on some systems.
+                    bool blank = true;
+                    for (int gy = 1; gy < 8 && blank; gy++)
+                        for (int gx = 1; gx < 8 && blank; gx++)
+                        {
+                            int off = (Height * gy / 8) * pitch + (Width * gx / 8) * 4;
+                            if (Marshal.ReadByte(data, off) > 8 || Marshal.ReadByte(data, off + 1) > 8 || Marshal.ReadByte(data, off + 2) > 8) blank = false;
+                        }
                     Slot<UnmapFn>(context, 15)(context, staging, 0);
+                    if (blank && last == null) { bmp.Dispose(); return null; }   // no real image yet: caller falls back to GDI
                     if (last != null) last.Dispose();
                     last = (Bitmap)bmp.Clone();
                     return bmp;

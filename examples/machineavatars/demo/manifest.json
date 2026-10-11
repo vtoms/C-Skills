@@ -1,0 +1,52 @@
+{
+    "scenes":  {
+                   "s01":  {
+                               "record_hash":  "e52058357251",
+                               "take":  "20261011-211427-8933",
+                               "clip_seconds":  10.568,
+                               "clip":  "clips\\s01\\20261011-211427-8933-0eaefbb1db98.mp4",
+                               "render_hash":  "0eaefbb1db98"
+                           },
+                   "s02":  {
+                               "record_hash":  "28bca48efcf1",
+                               "take":  "20261011-211428-e8ca",
+                               "clip_seconds":  8.996,
+                               "clip":  "clips\\s02\\20261011-211428-e8ca-8546a660a12b.mp4",
+                               "render_hash":  "8546a660a12b"
+                           },
+                   "s03":  {
+                               "record_hash":  "fa19f24df432",
+                               "take":  "20261011-211429-a784",
+                               "clip_seconds":  19.823,
+                               "clip":  "clips\\s03\\20261011-211429-a784-7eeda869d068.mp4",
+                               "render_hash":  "7eeda869d068"
+                           },
+                   "s04":  {
+                               "record_hash":  "20938165865c",
+                               "take":  "20261011-212421-8975",
+                               "clip_seconds":  9.908,
+                               "clip":  "clips\\s04\\20261011-212421-8975-ddd4f5062579.mp4",
+                               "render_hash":  "ddd4f5062579"
+                           }
+               },
+    "finals":  [
+                   {
+                       "version":  1,
+                       "file":  "final\\machineavatars-demo-v001.mp4",
+                       "seconds":  56.78,
+                       "made_utc":  "2026-10-11T21:17:04.3421550Z"
+                   },
+                   {
+                       "version":  2,
+                       "file":  "final\\machineavatars-demo-v002.mp4",
+                       "seconds":  55.11,
+                       "made_utc":  "2026-10-11T21:26:07.2070754Z"
+                   },
+                   {
+                       "version":  3,
+                       "file":  "final\\machineavatars-demo-v003.mp4",
+                       "seconds":  55.11,
+                       "made_utc":  "2026-10-11T21:29:27.7434675Z"
+                   }
+               ]
+}

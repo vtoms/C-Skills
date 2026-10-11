@@ -34,7 +34,7 @@ namespace DemoKit
             threads.ForEach(t => t.Start());
 
             DxgiCapture dx = null;
-            try { dx = new DxgiCapture(deviceName); dx.Grab(500).Dispose(); x = dx.X; y = dx.Y; w = dx.Width; h = dx.Height; Backend = "dxgi"; }
+            try { dx = new DxgiCapture(deviceName); var first = dx.Grab(300); if (first != null) first.Dispose(); x = dx.X; y = dx.Y; w = dx.Width; h = dx.Height; Backend = "dxgi"; }
             catch (Exception e) { if (dx != null) dx.Dispose(); dx = null; Backend = "gdi (" + e.Message + ")"; }
             File.WriteAllText(Path.Combine(outDir, "backend.txt"), Backend);
             File.WriteAllText(Path.Combine(outDir, "READY"), "");   // frames start now
@@ -51,8 +51,8 @@ namespace DemoKit
                     next = Math.Max(next + interval, now - interval); // never try to catch up more than one frame
                     long stamp = DateTime.UtcNow.Ticks;
                     Bitmap bmp;
-                    if (dx != null) bmp = dx.Grab(0);
-                    else { bmp = new Bitmap(w, h, PixelFormat.Format32bppRgb); using (var g0 = Graphics.FromImage(bmp)) g0.CopyFromScreen(x, y, 0, 0, new Size(w, h), CopyPixelOperation.SourceCopy); }
+                    bmp = dx != null ? dx.Grab(0) : null;   // null until DXGI has a real image (static or blank first frame)
+                    if (bmp == null) { bmp = new Bitmap(w, h, PixelFormat.Format32bppRgb); using (var g0 = Graphics.FromImage(bmp)) g0.CopyFromScreen(x, y, 0, 0, new Size(w, h), CopyPixelOperation.SourceCopy); }
                     var cur = Win32Input.CursorState();   // cursor is logged, not baked in: the renderer draws it after zooming
                     queue.Add(Tuple.Create(n, bmp));
                     log.WriteLine(n + "\t" + stamp + "\t" + cur[0] + "\t" + cur[1] + "\t" + cur[2] + "\t" + cur[3]);

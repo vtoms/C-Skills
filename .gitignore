@@ -3,3 +3,10 @@ __pycache__/
 .pytest_cache/
 .claude/worktrees/
 reddit_out/
+
+# demo-video projects: keep plans, logs and manifests; ignore media and per-take data
+examples/*/demo/audio/
+examples/*/demo/takes/
+examples/*/demo/clips/
+examples/*/demo/final/
+examples/*/demo/.browser-profile/

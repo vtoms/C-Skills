@@ -17,7 +17,7 @@ function Enable-DemoDpiAwareness {
 
 # Native helpers (real cursor/keyboard input, screen recorder), compiled once per session by the built-in C# compiler.
 if (-not ('DemoKit.Win32Input' -as [type])) {
-    Add-Type -Path (Join-Path $PSScriptRoot 'Win32Input.cs'), (Join-Path $PSScriptRoot 'FrameCapture.cs'), (Join-Path $PSScriptRoot 'FrameCompose.cs'), (Join-Path $PSScriptRoot 'DxgiCapture.cs') -ReferencedAssemblies System.Drawing, System.Core, System.Windows.Forms
+    Add-Type -Path (Join-Path $PSScriptRoot 'Win32Input.cs'), (Join-Path $PSScriptRoot 'FrameCapture.cs'), (Join-Path $PSScriptRoot 'FrameCompose.cs'), (Join-Path $PSScriptRoot 'DxgiCapture.cs'), (Join-Path $PSScriptRoot 'LoopbackCapture.cs') -ReferencedAssemblies System.Drawing, System.Core, System.Windows.Forms
 }
 
 # --- WinRT async bridging (PowerShell 5.1 cannot await IAsync* directly) ---

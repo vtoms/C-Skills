@@ -1,0 +1,63 @@
+﻿{
+  "title": "Meet Eva",
+  "subtitle": "A talking AI sales agent from MachineAvatars",
+  "outro": { "title": "MachineAvatars", "subtitle": "Free trial at machineavatars.com" },
+  "scenes": [
+    {
+      "id": "s01", "title": "A website that talks back",
+      "pre": [
+        { "do": "wait", "for": { "type": "Button", "name": "Close modal" }, "timeout_ms": 30000, "optional": true },
+        { "do": "click", "target": { "type": "Button", "name": "Close modal" }, "optional": true },
+        { "do": "click", "target": { "type": "Group", "name": "AI Chatbot Widget" }, "note": "first click unlocks the agent's audio; the second (scene s02) opens the chat" },
+        { "do": "wait", "ms": 1500 }
+      ],
+      "narration": "MachineAvatars puts a talking 3D sales agent on your website. [pause 300ms] She answers your visitors out loud, around the clock.",
+      "actions": [ { "do": "hover", "target": { "type": "Group", "name": "AI Chatbot Widget" }, "at_word": 11 } ],
+      "effects": [
+        { "type": "underline", "target": { "text": "AI Sales Chatbot For Your Website That" }, "at_word": 3, "until_word": 9 },
+        { "type": "highlight", "target": { "type": "Group", "name": "AI Chatbot Widget" }, "at_word": 11, "until_word": 17 }
+      ]
+    },
+    {
+      "id": "s02", "title": "Open the agent",
+      "narration": "One click opens Eva. She is trained on the site's own pages, so her answers come straight from your content.",
+      "actions": [
+        { "do": "click", "target": { "type": "Group", "name": "AI Chatbot Widget" }, "at_word": 3 },
+        { "do": "wait", "ms": 1500 }
+      ],
+      "effects": [
+        { "type": "zoom", "target": { "type": "Document", "name": "AI Chatbot Support Window" }, "at_word": 6, "until_word": 19, "scale": 1.35 }
+      ]
+    },
+    {
+      "id": "s03", "title": "Ask her anything",
+      "pre": [ { "do": "click", "target": { "type": "Button", "name": "Close modal" }, "optional": true } ],
+      "narration": "Let's ask her what she can do for a business website. [pause 400ms] Then we send it, and simply listen to her answer.",
+      "actions": [
+        { "do": "type", "target": { "type": "Edit", "name": "Message input" }, "text": "What can your AI avatar do for my website?", "at_word": 2, "cps": 22 },
+        { "do": "click", "target": { "type": "Button", "name": "Send message" }, "at_word": 14 },
+        { "do": "wait_audio", "start_timeout_ms": 30000, "quiet_ms": 1800, "timeout_ms": 90000, "expect_seconds": 16 }
+      ],
+      "edits": [ { "cut": [8.6, 10.3], "why": "shorten the agent's thinking pause" } ],
+      "edits": [ { "cut": [8.6, 10.3], "why": "shorten the agent's thinking pause" } ],
+      "effects": [
+        { "type": "zoom", "target": { "type": "Document", "name": "AI Chatbot Support Window" }, "at_app_audio": true, "scale": 1.35 }
+      ]
+    },
+    {
+      "id": "s04", "title": "Try it",
+      "pre": [
+        { "do": "click", "target": { "type": "Button", "name": "Close modal" }, "optional": true },
+        { "do": "click", "target": { "type": "Group", "within": { "type": "Document", "name": "AI Chatbot Support Window" }, "pick": "top-right" }, "note": "close the chat so the FREE TRIAL button is visible" },
+        { "do": "wait", "ms": 1200 }
+      ],
+      "narration": "That's MachineAvatars: a lifelike agent for every visitor, in more than forty languages. Start with a free trial.",
+      "actions": [ { "do": "hover", "target": { "type": "Hyperlink", "name": "FREE TRIAL" }, "at_word": 17 } ],
+      "effects": [ { "type": "highlight", "target": { "type": "Hyperlink", "name": "FREE TRIAL" }, "at_word": 16, "until_word": 18 } ]
+    }
+  ]
+}
+
+
+
+
