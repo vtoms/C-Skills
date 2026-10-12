@@ -170,7 +170,11 @@ foreach ($s in $scenes) {
         if (-not $ed) { continue }
         foreach ($f in 'cut', 'freeze') { if ($ed.$f) { $r = @($ed.$f); if ($r.Count -ne 2 -or [double]$r[1] -le [double]$r[0]) { Err "${sid}: edit '$f' needs [from, to] with to after from (seconds from the narration start)." } } }
         if ($null -ne $ed.pause -and ([double]$ed.pause -le 0 -or ($null -eq $ed.at_word -and $null -eq $ed.at))) { Err "${sid}: edit 'pause' needs a positive length and at_word or at." }
-        if (-not ($ed.cut -or $ed.freeze -or $null -ne $ed.pause)) { Err "${sid}: an edit needs cut, freeze or pause." }
+        if ($null -ne $ed.hold) {
+            if ("$($ed.hold)" -eq 'narration') { if ($null -eq $ed.at_word -and $null -eq $ed.at -and -not $project.app_audio) { Err "${sid}: hold 'narration' without at/at_word is placed where the app starts talking, which needs app_audio: true in project.json." } }
+            elseif (-not ("$($ed.hold)" -as [double]) -or [double]$ed.hold -le 0 -or ($null -eq $ed.at_word -and $null -eq $ed.at)) { Err "${sid}: edit 'hold' needs a positive length (or ""narration"") and at_word or at." }
+        }
+        if (-not ($ed.cut -or $ed.freeze -or $null -ne $ed.pause -or $null -ne $ed.hold)) { Err "${sid}: an edit needs cut, freeze, pause or hold." }
     }
     if ($s.caption_position -and $s.caption_position -notin 'auto', 'top', 'bottom') { Err "${sid}: caption_position must be auto, top or bottom." }    if ($moveCount -gt 2) { Warn "${sid}: $moveCount zooms in one scene; keep one dominant camera move per scene (chained pans count as one)." }
     if (@($s.effects | Where-Object { $_.type -eq 'spotlight' }).Count -gt 1) { Warn "${sid}: more than one spotlight in a scene." }

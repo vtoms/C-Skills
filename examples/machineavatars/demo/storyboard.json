@@ -25,6 +25,7 @@
         { "do": "click", "target": { "type": "Group", "name": "AI Chatbot Widget" }, "at_word": 3 },
         { "do": "wait", "ms": 1500 }
       ],
+      "edits": [ { "hold": "narration", "why": "Eva's greeting started before the narration ended" } ],
       "effects": [
         { "type": "zoom", "target": { "type": "Document", "name": "AI Chatbot Support Window" }, "at_word": 6, "until_word": 19, "scale": 1.35 }
       ]

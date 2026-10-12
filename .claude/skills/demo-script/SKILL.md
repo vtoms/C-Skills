@@ -31,7 +31,7 @@ Write `<project>/storyboard.json` from the plan: title, subtitle, outro, and one
   - Tie each pointer action to the word it illustrates with `at_word`.
   - Tie each effect to the phrase that names its target with `at_word` and `until_word`.
   - Keep one dominant camera move per scene, and zoom on something small. A zoom can't go deeper than its target allows while the target stays in frame.
-- **Talking apps** (`app_audio`): let the narration set up the moment, then stay silent while the app speaks. End the scene's actions with `wait_audio`, and time effects with `at_app_audio`.
+- **Talking apps** (`app_audio`): let the narration set up the moment, then stay silent while the app speaks. End the scene's actions with `wait_audio`, and time effects with `at_app_audio`. Expect the app to speak unprompted too (an agent greets you when opened): put that click on the scene's last line, or add `{ "hold": "narration" }` to the scene's `edits` so the app waits until the narration ends.
 - **Captions:** if they would cover the result being shown, set the scene's `caption_position` to `top`.
 - **Pronunciation:**
   - A respelling for the whole project goes in `voice.lexicon`. Changing the lexicon later makes every take stale.

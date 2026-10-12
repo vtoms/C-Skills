@@ -1,4 +1,4 @@
-﻿# Renders each scene's current take into its own clip (MP4 + SRT) with Windows' built-in MediaComposition.
+# Renders each scene's current take into its own clip (MP4 + SRT) with Windows' built-in MediaComposition.
 # A clip is rebuilt only when its inputs change (take, effects, edits, render settings or renderer code).
 #
 #   RenderClip.ps1 -Dir demo                 # every scene whose clip is missing or out of date
@@ -9,6 +9,8 @@
 #   { "cut":    [from, to] }            remove a stretch of picture AND sound (only where nobody is speaking)
 #   { "freeze": [from, to] }            show the frame at 'from' for that stretch; narration keeps playing
 #   { "pause":  1.2, "at": 3.4 }        insert a still frame and silence (narration resumes after)
+#   { "hold":   2.5, "at": 4.6 }        hold the picture and the app's sound for 2.5 s while the narration plays on
+#   { "hold":   "narration" }           same, until the narration ends; placed where the app starts talking unless at/at_word is given
 #   "auto_trim": false                  turn off the automatic trimming of idle, silent stretches (on by default)
 # Effects (storyboard scene "effects"), timed to words:
 #   { "type": "zoom|highlight|spotlight|marker|underline|callout", "target": {name,id,type,index} | "rect": {x,y,w,h},
@@ -145,8 +147,33 @@ foreach ($scene in $targets) {
     $clicks = @($take.events | Where-Object { $_.kind -eq 'click' } | ForEach-Object { [pscustomobject]@{ t = (SecOf ([long]$_.t)); x = $_.x; y = $_.y } })
     $words = @($take.words)
     $appLoud = @(foreach ($x in @($take.app_audio.levels)) { if ($x -and [double]$x[1] -gt 0.01) { SecOf ([long]$x[0]) } })
+
+    # Holds: the picture and the app's sound wait while the narration plays on, so the narration runs ahead of the
+    # picture after each hold. "narration" holds until the narration has ended (+0.5 s), by default where the app starts talking.
+    $narrEnd = if ($words.Count) { [double]$words[-1].end } else { 0.0 }
+    $holds = @(); $lead = 0.0
+    $holdEdits = @(@($scene.edits) | Where-Object { $_ -and $null -ne $_.hold } | ForEach-Object {
+        $byWord = $null -ne $_.at_word -or $null -ne $_.at
+        $at = if ($byWord) { Get-WordTime $take $_ 'start' } elseif ($appLoud.Count) { ($appLoud | Measure-Object -Minimum).Minimum - 0.3 } else { $null }
+        [pscustomobject]@{ at = $at; hold = $_.hold } } | Sort-Object at)
+    foreach ($hd in $holdEdits) {
+        if ($null -eq $hd.at) { Write-Warning "${id}: hold needs 'at' or 'at_word' (the take has no app audio to place it); skipped."; continue }
+        $sec = if ("$($hd.hold)" -eq 'narration') { $narrEnd + 0.5 - ($hd.at + $lead) } else { [double]$hd.hold }
+        if ($sec -lt 0.05) { Write-Host "${id}: hold at $([math]::Round($hd.at, 2))s not needed (the narration has already ended)."; continue }
+        $holds += [pscustomobject]@{ at = [math]::Round($hd.at, 3); sec = [math]::Round($sec, 3) }; $lead += $sec
+    }
+    $shiftAt = { param([double]$p) $s = 0.0; foreach ($h in $holds) { if ($h.at -le $p) { $s += $h.sec } }; $s }   # narration lead at picture time p
+    $picOf = { param([double]$tn) $c = 0.0; foreach ($h in $holds) { if ($tn -lt $h.at + $c) { break }; if ($tn -lt $h.at + $c + $h.sec) { return $h.at }; $c += $h.sec }; $tn - $c }
+    $talkOver = @($appLoud | Where-Object { $p = $_ + (& $shiftAt $_); $hit = $false; foreach ($wd in $words) { if ([double]$wd.start - 0.1 -le $p -and [double]$wd.end + 0.1 -ge $p) { $hit = $true; break } }; $hit })   # not $w: it would overwrite $W
+    if ($talkOver.Count) { Write-Warning ("{0}: the app talks over the narration at {1:N1}s; add the edit {{ ""hold"": ""narration"" }} so it waits until the narration ends." -f $id, $talkOver[0]) }
+    foreach ($hd in $holds) {
+        $late = @($take.actions | Where-Object { $_.do -ne 'wait_audio' -and $_.target -and (SecOf ([long]$_.start)) -gt $hd.at })
+        if ($late.Count) { Write-Warning ("{0}: {1} action(s) after the hold at {2:N1}s now happen {3:N1}s after their words; hold after the last action instead." -f $id, $late.Count, $hd.at, $hd.sec) }
+    }
+
     $speaking = { param($a, $b)
-        foreach ($w in $words) { if ([double]$w.end + 0.15 -gt $a -and [double]$w.start - 0.15 -lt $b) { return $true } }
+        $na = $a + (& $shiftAt $a); $nb = $b + (& $shiftAt $b)   # the narration runs ahead of the picture after a hold
+        foreach ($w in $words) { if ([double]$w.end + 0.15 -gt $na -and [double]$w.start - 0.15 -lt $nb) { return $true } }
         foreach ($t in $appLoud) { if ($t -gt $a - 0.3 -and $t -lt $b + 0.3) { return $true } }   # the app itself is talking
         $false }
 
@@ -189,21 +216,27 @@ foreach ($scene in $targets) {
     $inCut = { param($t) foreach ($c in $allCuts) { if ($t -ge $c[0] -and $t -lt $c[1]) { return $true } }; $false }
     $frozenAt = { param($t) foreach ($f in $freezes) { if ($t -ge $f[0] -and $t -lt $f[1]) { return $f[0] } }; $null }
     $pauseQueue = @($pauses | Sort-Object at)
-    $pq = 0; $afterCut = $false; $lastTn = -1e9
+    $pq = 0; $hq = 0; $curLead = 0.0; $afterCut = $false; $lastTn = -1e9
     for ($k = 0; $k -lt $frames.Count; $k++) {
         $f = $frames[$k]
         $from = if ($k -eq 0) { $sceneFrom } else { $f.t }
         $to = if ($k + 1 -lt $frames.Count) { $frames[$k + 1].t } else { $sceneTo }
         if (& $inCut $from) { $afterCut = $true; continue }
-        while ($pq -lt $pauseQueue.Count -and $pauseQueue[$pq].at -lt $to) {
-            # Narration time stands still just before this frame, so captions and effects keep the preceding state.
-            $plan.Add([pscustomobject]@{ frame = $f; src = $from; tn = [math]::Max($lastTn, [math]::Min($from, $pauseQueue[$pq].at) - 0.06); dur = $pauseQueue[$pq].sec; kind = 'pause'; blend = $false }); $pq++   # clear of the caption lookup's 0.05 s lead
-        }
         $fz = & $frozenAt $from
         $useFrame = $f
         if ($null -ne $fz) { $useFrame = ($frames | Where-Object { $_.t -le $fz } | Select-Object -Last 1); if (-not $useFrame) { $useFrame = $f } }
-        $lastTn = $from
-        $plan.Add([pscustomobject]@{ frame = $useFrame; src = $(if ($null -ne $fz) { $fz } else { $from }); tn = $from; dur = [math]::Max(0.001, $to - $from); kind = 'play'; blend = $afterCut; audioFrom = $from })
+        while ($hq -lt $holds.Count -and $holds[$hq].at -lt $to) {
+            # A hold: this frame stays on screen and the app is silent while narration time runs on (frame-by-frame, so captions and effects animate).
+            $hs = $holds[$hq]; $steps = [math]::Max(1, [int][math]::Round($hs.sec * 30))
+            for ($st = 0; $st -lt $steps; $st++) { $plan.Add([pscustomobject]@{ frame = $useFrame; src = $from; tn = $from + $curLead + $st * $hs.sec / $steps; dur = $hs.sec / $steps; kind = 'hold'; blend = $false }) }
+            $curLead += $hs.sec; $lastTn = $from + $curLead; $hq++
+        }
+        while ($pq -lt $pauseQueue.Count -and $pauseQueue[$pq].at -lt $to + $curLead) {   # pause times are narration times
+            # Narration time stands still just before this frame, so captions and effects keep the preceding state.
+            $plan.Add([pscustomobject]@{ frame = $f; src = $from; tn = [math]::Max($lastTn, [math]::Min($from + $curLead, $pauseQueue[$pq].at) - 0.06); dur = $pauseQueue[$pq].sec; kind = 'pause'; blend = $false }); $pq++   # clear of the caption lookup's 0.05 s lead
+        }
+        $lastTn = $from + $curLead
+        $plan.Add([pscustomobject]@{ frame = $useFrame; src = $(if ($null -ne $fz) { $fz } else { $from }); tn = $from + $curLead; dur = [math]::Max(0.001, $to - $from); kind = 'play'; blend = $afterCut; audioFrom = $from })
         $afterCut = $false
     }
 
@@ -217,8 +250,9 @@ foreach ($scene in $targets) {
             # Runs while the app itself is speaking (e.g. a chat agent's spoken answer).
             if (-not $appLoud) { Write-Warning "${id}: $($e.type) is timed to the app's audio, but the take has none; effect skipped."; $skippedFx += "$($e.type): no app audio"; continue }
             $cue = ($appLoud | Measure-Object -Minimum).Minimum; $phraseEnd = ($appLoud | Measure-Object -Maximum).Maximum
+            $cue += & $shiftAt $cue; $phraseEnd += & $shiftAt $phraseEnd   # picture time -> narration time (effects run on narration time)
         }
-        $rect = Resolve-TargetRect $take $e $cue
+        $rect = Resolve-TargetRect $take $e (& $picOf $cue)
         if (-not $rect) { $skippedFx += "$($e.type) $(if ($null -ne $e.at_word) { "at word $($e.at_word)" } elseif ($e.at_app_audio) { 'during app audio' } else { "at $($e.at)s" }): target not found"; continue }
         $vx = [math]::Max(0, [math]::Min($rect.x + $rect.w, $cap.x + $bx + $bw) - [math]::Max($rect.x, $cap.x + $bx))
         $vy = [math]::Max(0, [math]::Min($rect.y + $rect.h, $cap.y + $by + $bh) - [math]::Max($rect.y, $cap.y + $by))
@@ -234,7 +268,7 @@ foreach ($scene in $targets) {
         if ($null -eq $phraseEnd) { $phraseEnd = $cue + 1.6 }
         $from = $cue - $def.lead
         $to = [math]::Max($phraseEnd + $def.tail, $cue + $def.min) + $def.out
-        $to = [math]::Min($to, $sceneTo - 0.5)                         # every effect ends before the scene's last 0.5 s
+        $to = [math]::Min($to, $sceneTo + $lead - 0.5)                 # every effect ends before the scene's last 0.5 s
         $fx += [pscustomobject]@{ type = $e.type; rect = $rect; from = $from; to = $to; in = $def.in; out = $def.out; cue = $cue
                                   scale = $(if ($e.scale) { [math]::Min(2.0, [double]$e.scale) } elseif ($e.type -eq 'callout') { 1.8 } else { 1.4 }) }
     }
@@ -319,23 +353,29 @@ foreach ($scene in $targets) {
     }
     [DemoKit.FrameCompose]::RenderAll($jobs.ToArray(), $W, $H, [long]$quality, $font)
 
-    # --- Narration: place every audio part on the output timeline, following the edits ---
-    # Map source narration time -> output time: walk the plan; each 'play' entry carries audio from its source span.
-    $audioSpans = New-Object System.Collections.Generic.List[object]
-    foreach ($e in $timeline) {
-        if ($e.kind -ne 'play') { continue }
-        $a = [double]$e.audioFrom; $b = $a + $e.dur
-        if ($audioSpans.Count -and [math]::Abs($audioSpans[$audioSpans.Count - 1].srcTo - $a) -lt 0.002 -and [math]::Abs(($audioSpans[$audioSpans.Count - 1].outTo) - $e.out) -lt 0.002) {
-            $audioSpans[$audioSpans.Count - 1].srcTo = $b; $audioSpans[$audioSpans.Count - 1].outTo = $e.out + $e.dur
-        } else { $audioSpans.Add([pscustomobject]@{ srcFrom = $a; srcTo = $b; outFrom = $e.out; outTo = $e.out + $e.dur }) }
+    # --- Audio: place every audio part on the output timeline, following the edits ---
+    # Map source time -> output time by walking the timeline. The narration follows narration time (it plays on through holds);
+    # the app's own sound follows picture time ('play' entries only, so it waits during holds and pauses).
+    $spansOf = { param([string]$Key, [string[]]$Kinds)
+        $list = New-Object System.Collections.Generic.List[object]
+        foreach ($e in $timeline) {
+            if ($e.kind -notin $Kinds) { continue }
+            $a = [double]$e.$Key; $b = $a + $e.dur
+            if ($list.Count -and [math]::Abs($list[$list.Count - 1].srcTo - $a) -lt 0.002 -and [math]::Abs(($list[$list.Count - 1].outTo) - $e.out) -lt 0.002) {
+                $list[$list.Count - 1].srcTo = $b; $list[$list.Count - 1].outTo = $e.out + $e.dur
+            } else { $list.Add([pscustomobject]@{ srcFrom = $a; srcTo = $b; outFrom = $e.out; outTo = $e.out + $e.dur }) }
+        }
+        , $list.ToArray()
     }
+    $narrSpans = & $spansOf 'tn' @('play', 'hold')
+    $appSpans = & $spansOf 'audioFrom' @('play')
     $comp = [Windows.Media.Editing.MediaComposition]::new()
     foreach ($e in $timeline) {
         $clip = Wait-WinRT ([Windows.Media.Editing.MediaClip]::CreateFromImageFileAsync((Get-StorageFile $e.file), [TimeSpan]::FromTicks([long]($e.dur * 1e7)))) ([Windows.Media.Editing.MediaClip])
         Add-WinRTItem $comp.Clips $clip ([Windows.Media.Editing.MediaClip])
     }
     $placed = 0
-    $parts = @($take.audio | ForEach-Object { [pscustomobject]@{ file = (Join-Path $Dir $_.file); offset = [double]$_.offset; duration = [double]$_.duration; volume = 1.0 } })
+    $parts = @($take.audio | ForEach-Object { [pscustomobject]@{ file = (Join-Path $Dir $_.file); offset = [double]$_.offset; duration = [double]$_.duration; volume = 1.0; spans = $narrSpans } })
     if ($take.app_audio) {
         # Level the app's own sound against the narration: scale its speech to about 0.11 RMS (Aria's typical level).
         $loudLv = @($take.app_audio.levels | ForEach-Object { [double]$_[1] } | Where-Object { $_ -gt 0.01 } | Sort-Object)
@@ -343,11 +383,11 @@ foreach ($scene in $targets) {
         $wav = Join-Path $takeDir $take.app_audio.file
         $fsw = [IO.File]::OpenRead($wav); $hdr = New-Object byte[] 44; [void]$fsw.Read($hdr, 0, 44); $fsw.Dispose(); $byteRate = [BitConverter]::ToInt32($hdr, 28)
         $parts += [pscustomobject]@{ file = $wav; offset = (SecOf ([long]$take.app_audio.start)); duration = ((Get-Item $wav).Length - 44) / [double]$byteRate
-                                     volume = $(if ($null -ne $project.app_audio_volume) { [double]$project.app_audio_volume } else { $autoGain }) }
+                                     volume = $(if ($null -ne $project.app_audio_volume) { [double]$project.app_audio_volume } else { $autoGain }); spans = $appSpans }
     }
     foreach ($part in $parts) {
         $pFrom = [double]$part.offset; $pTo = $pFrom + [double]$part.duration
-        foreach ($sp in $audioSpans) {
+        foreach ($sp in $part.spans) {
             $a = [math]::Max($sp.srcFrom, $pFrom); $b = [math]::Min($sp.srcTo, $pTo)
             if ($b - $a -lt 0.01) { continue }
             $track = Wait-WinRT ([Windows.Media.Editing.BackgroundAudioTrack]::CreateFromFileAsync((Get-StorageFile $part.file))) ([Windows.Media.Editing.BackgroundAudioTrack])
@@ -368,7 +408,7 @@ foreach ($scene in $targets) {
     if ("$result" -ne 'None') { throw "${id}: render failed: $result" }
 
     # Clip captions (clip-relative times), first/last frames for transitions, and the record of how it was made.
-    $srt = @(); $toOut = { param($src) foreach ($e in $timeline) { if ($e.kind -eq 'play' -and $src -ge $e.tn - 0.001 -and $src -lt $e.tn + $e.dur) { return $e.out + ($src - $e.tn) } }; $null }
+    $srt = @(); $toOut = { param($src) foreach ($e in $timeline) { if ($e.kind -in 'play', 'hold' -and $src -ge $e.tn - 0.001 -and $src -lt $e.tn + $e.dur) { return $e.out + ($src - $e.tn) } }; $null }   # narration time -> clip time
     foreach ($c in $chunks) { $a = & $toOut $c.start; $b = & $toOut ([math]::Max($c.start, $c.end - 0.01)); if ($null -ne $a -and $null -ne $b) { $srt += [pscustomobject]@{ text = $c.text; start = [math]::Round($a, 3); end = [math]::Round($b + 0.01, 3) } } }
     Copy-Item $timeline[0].file (Join-Path $clipDir "$($entry.take)-$renderHash.first.jpg") -Force
     Copy-Item $timeline[$timeline.Count - 1].file (Join-Path $clipDir "$($entry.take)-$renderHash.last.jpg") -Force
@@ -379,7 +419,8 @@ foreach ($scene in $targets) {
         cuts = @($cuts | ForEach-Object { , @($_) }); auto_cuts = @($autoCuts | ForEach-Object { , @([math]::Round($_[0], 2), [math]::Round($_[1], 2)) }); freezes = $freezes; pauses = $pauses
         effects = @($fx | ForEach-Object { $mid = & $toOut (($_.from + $_.to) / 2)
             [ordered]@{ type = $_.type; clip_from = $(& $toOut $_.from); clip_mid = $mid; clip_to = $(& $toOut $_.to); scale_applied = $_.applied; source_from = [math]::Round($_.from, 2); source_to = [math]::Round($_.to, 2); rect = $_.rect } })
-        clicks = @($clicks | ForEach-Object { $ct = & $toOut $_.t; if ($null -ne $ct) { [math]::Round($ct, 2) } })
+        holds = $holds
+        clicks = @($clicks | ForEach-Object { $ct = & $toOut ($_.t + (& $shiftAt $_.t)); if ($null -ne $ct) { [math]::Round($ct, 2) } })
         caption_position = $(if ($captionTop) { 'top' } else { 'bottom' })
         pauses_in_clip = @($timeline | Where-Object { $_.kind -eq 'pause' } | ForEach-Object { [ordered]@{ at = [math]::Round($_.out, 2); seconds = [math]::Round($_.dur, 2) } })
         skipped_effects = $skippedFx

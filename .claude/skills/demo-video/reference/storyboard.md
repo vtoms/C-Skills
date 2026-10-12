@@ -100,4 +100,5 @@ Timing: `at_word` (index into the spoken words) or `at` (seconds from the narrat
 - `{ "cut": [from, to] }`: remove picture and sound (skipped with a warning where narration or the app's speech is playing). Cuts are crossfaded.
 - `{ "freeze": [from, to] }`: hold the frame at `from` while the narration keeps playing (hide a spinner or flicker).
 - `{ "pause": 1.2, "at_word": 7 }`: insert a still frame and silence; narration resumes after.
+- `{ "hold": "narration" }`: when the app starts talking while the narration is still going, hold the picture and the app's sound until the narration has ended (+0.5 s), then let the app speak. Placed just before the app's first sound; give `at` or `at_word` to place it elsewhere. `{ "hold": 2.5, "at": 4.6 }` holds for a set time. The narration runs ahead of the picture after a hold, so put it after the scene's last action (RenderClip warns otherwise).
 - `"auto_trim": false`: keep idle silent stretches (by default stretches over 1.5 s with no motion, speech or action are cut to 0.6 s).

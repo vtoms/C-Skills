@@ -27,6 +27,8 @@ Post-production on the recorded takes. A clip is rebuilt only when its inputs ch
 | phrase "was not measured in this take" | the phrase target was added after recording | `/demo-record` that scene, or give a `rect` |
 | click "outside the zoomed view" | the zoom crops the action | end the zoom earlier, or zoom on an area that includes the click |
 | cut "overlaps narration" | the cut was skipped | move it to where nobody is speaking |
+| "the app talks over the narration" | the app's sound (a greeting, an answer) starts before the narration ends | add `{ "hold": "narration" }` to the scene's `edits` |
+| actions "after the hold" | the narration runs ahead after a hold | place the hold after the scene's last action |
 
 ## 2. Review every clip yourself
 Each clip has a JSON file next to it (the path is in `manifest.json`), with times already on the clip's own timeline:
@@ -44,7 +46,7 @@ Check:
 - **The cursor** is where the narration says, and clicks land as the word is spoken.
 - **No dead air,** loading spinners or pop-ups on screen. The clip JSON lists automatic trims.
 - **No personal data** on screen: emails, account names, tokens. Any value the narration speaks is readable.
-- **App audio,** if used, was recorded: the take's `take.json` has `app_audio`. Listen to the clip.
+- **App audio,** if used, was recorded: the take's `take.json` has `app_audio`. Listen to the clip. The app must never talk over the narration (RenderClip warns when it does).
 
 Fix with the cheapest change. Effects, edits (`cut`, `freeze`, `pause`) and brand settings only need a re-render. Narration, steps or phrase targets need `/demo-record` for that scene.
 
@@ -72,6 +74,7 @@ Log each note with `Note.ps1 -Dir <project> -Kind review -Scene <id> -Text "..."
 | Wrong or missing step, UI changed | storyboard actions | `/demo-record` (rehearse, then record that scene and any after it that depend on it), Stitch |
 | Effect, emphasis, zoom, caption position | storyboard effects or `caption_position` | Stitch |
 | Too slow, a wait, a glitch | `edits` (cut, freeze, pause) | Stitch |
+| The app talks over the narration | `edits`: `{ "hold": "narration" }` in that scene | Stitch |
 | Colours, fonts, cards, music, captions on/off | `project.json` | Stitch |
 
 Each round makes a new version. Earlier versions stay in `final/`, and everything is logged in `log.jsonl`.

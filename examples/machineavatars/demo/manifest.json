@@ -4,29 +4,29 @@
                                "record_hash":  "6ec4ee6f676c",
                                "take":  "20261011-222210-a5a4",
                                "clip_seconds":  10.568,
-                               "clip":  "clips\\s01\\20261011-222210-a5a4-0a65fee8a245.mp4",
-                               "render_hash":  "0a65fee8a245"
+                               "clip":  "clips\\s01\\20261011-222210-a5a4-4e38b570783b.mp4",
+                               "render_hash":  "4e38b570783b"
                            },
                    "s02":  {
                                "record_hash":  "8e8504c616e4",
                                "take":  "20261011-222211-ced7",
-                               "clip_seconds":  8.996,
-                               "clip":  "clips\\s02\\20261011-222211-ced7-5ae0bedd26d2.mp4",
-                               "render_hash":  "5ae0bedd26d2"
+                               "clip_seconds":  12.063,
+                               "clip":  "clips\\s02\\20261011-222211-ced7-7d053475da8b.mp4",
+                               "render_hash":  "7d053475da8b"
                            },
                    "s03":  {
                                "record_hash":  "88445f557d83",
                                "take":  "20261011-222212-eb2a",
                                "clip_seconds":  18.801,
-                               "clip":  "clips\\s03\\20261011-222212-eb2a-188e0d2d8c9b.mp4",
-                               "render_hash":  "188e0d2d8c9b"
+                               "clip":  "clips\\s03\\20261011-222212-eb2a-9033f0140b99.mp4",
+                               "render_hash":  "9033f0140b99"
                            },
                    "s04":  {
                                "record_hash":  "fad7c873c426",
                                "take":  "20261011-222214-51b6",
                                "clip_seconds":  9.908,
-                               "clip":  "clips\\s04\\20261011-222214-51b6-878ed061154a.mp4",
-                               "render_hash":  "878ed061154a"
+                               "clip":  "clips\\s04\\20261011-222214-51b6-3abec84c3250.mp4",
+                               "render_hash":  "3abec84c3250"
                            }
                },
     "finals":  [
@@ -53,6 +53,12 @@
                        "file":  "final\\machineavatars-demo-v004.mp4",
                        "seconds":  54.09,
                        "made_utc":  "2026-10-11T22:24:21.3745948Z"
+                   },
+                   {
+                       "version":  5,
+                       "file":  "final\\machineavatars-demo-v005.mp4",
+                       "seconds":  57.15,
+                       "made_utc":  "2026-10-12T05:00:57.6380172Z"
                    }
                ]
 }
